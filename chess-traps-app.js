@@ -362,7 +362,10 @@ function loadTrap() {
   const trap = ALL_TRAPS[currentTrap];
   if (!trap) return;
 
-  setText('trapBadge',   `ПАСТКА #${trap.id}`);
+  const sideIcon = (trap.playAs || 'white') === 'black' ? '⚫' : '⚪';
+  const sideText = (trap.playAs || 'white') === 'black'
+    ? 'Граєш за чорних' : 'Граєш за білих';
+  setText('trapBadge',   `ПАСТКА #${trap.id} · ${sideIcon} ${sideText}`);
   setText('trapName',    trap.name.uk);
   setText('trapOpening', trap.opening.uk);
   setText('trapDesc',    trap.desc.uk);
@@ -378,13 +381,14 @@ function loadTrap() {
   el('prevBtn').disabled = (currentTrap === 0);
   setText('scoreBadge', `${totalCorrect} ✓`);
 
-  // Статична дошка
+  // Статична дошка (орієнтована під сторону гравця)
   game = new Chess(trap.startFen);
   if (board) board.destroy();
   board = Chessboard('board', {
-    position:   trap.startFen,
-    draggable:  false,
-    pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
+    position:    trap.startFen,
+    draggable:   false,
+    orientation: trap.orientation || 'white',
+    pieceTheme:  'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
     showNotation: true
   });
 
@@ -555,12 +559,13 @@ function makeBoardDraggable() {
   game = new Chess(trap.startFen);
   if (board) board.destroy();
   board = Chessboard('board', {
-    position:   trap.startFen,
-    draggable:  true,
+    position:    trap.startFen,
+    draggable:   true,
+    orientation: trap.orientation || 'white',
     onDragStart,
     onDrop,
     onSnapEnd,
-    pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
+    pieceTheme:  'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
     showNotation: true
   });
   updateMoveLine();
@@ -597,7 +602,12 @@ function loadPlayStep() {
 
 function onDragStart(src, piece) {
   if (!awaitingMove || game.game_over()) return false;
-  return piece.charAt(0) === game.turn();
+  // Перевіряємо що гравець рухає СВОЇМИ фігурами (відповідно до playAs)
+  const trap = ALL_TRAPS[currentTrap];
+  const playAs = trap.playAs || 'white';
+  const playerColor = playAs === 'white' ? 'w' : 'b';
+  // Гравець може рухати тільки якщо зараз його черга
+  return piece.charAt(0) === game.turn() && piece.charAt(0) === playerColor;
 }
 
 function onDrop(src, tgt) {
