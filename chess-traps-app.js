@@ -458,72 +458,108 @@ function onTabClick(n) {
 }
 
 /* ── ФАЗА 1: ПОЯСНЕННЯ ──────────────────────── */
+// Відтворюємо ВСІ ходи партії (allMoves) — не тільки кроки гравця
+
+let explainPaused = false;
+
 function startExplain() {
   setText2('qLabel', 'ФАЗА 1 — ПОЯСНЕННЯ');
   setText2('qText',  '👁 Дивись та запам\'ятовуй — пастка розгортається автоматично');
   disableBtn('nextBtn', true);
   disableBtn('hintBtn', true);
   showSkipBtn(true);
-  renderDots();
-  animStep();
+  explainPaused = false;
+  phaseStep = 0;
+  renderExplainDots();
+  setTimeout(animAllMoves, 800);
 }
 
-function animStep() {
-  const trap = ALL_TRAPS[currentTrap];
+function animAllMoves() {
+  if (explainPaused) return;
 
-  if (phaseStep >= trap.steps.length) {
-    // Анімація завершена
+  const trap     = ALL_TRAPS[currentTrap];
+  const allMoves = trap.allMoves || [];
+  const allSan   = trap.allSan   || [];
+  const playAs   = trap.playAs   || 'white';
+
+  if (phaseStep >= allMoves.length) {
+    // Всі ходи зіграно
     trapProgress[currentTrap].p1 = true;
     saveProgress();
     renderMenu();
     updatePhaseTabs();
-
     setText2('qText', '✅ Пастку переглянуто! Тепер спробуй сам.');
     disableBtn('nextBtn', false);
     setLabel('nextBtn',  'До вправи →');
     setLabel('nextBtnM', 'До вправи →');
     showSkipBtn(false);
+    renderExplainDots();
     return;
   }
 
-  const step = trap.steps[phaseStep];
-  setText2('qText', step.question.uk);
+  const uci   = allMoves[phaseStep];
+  const san   = allSan[phaseStep] || '';
+  const from  = uci.substring(0, 2);
+  const to    = uci.substring(2, 4);
+  const promo = uci.length === 5 ? uci[4] : 'q';
 
-  const playMain = () => {
-    const from = step.move.substring(0, 2);
-    const to   = step.move.substring(2, 4);
-    const mv   = game.move({ from, to, promotion: 'q' });
-    if (mv) {
-      hlSq(from, to);
-      board.position(game.fen());
-      updateMoveLine();
-      speakMove(step.san);   // озвучуємо хід
-    }
-    phaseStep++;
-    setTimeout(animStep, 1100);
-  };
+  // Визначаємо чий хід
+  const isWhiteMove = (phaseStep % 2 === 0);
+  const isMyMove    = (playAs === 'white' && isWhiteMove) || (playAs === 'black' && !isWhiteMove);
+  const sideIcon    = isMyMove ? '🎯' : (isWhiteMove ? '⚪' : '⚫');
+  const sideName    = isMyMove ? 'Твій хід' : (isWhiteMove ? 'Білі' : 'Чорні');
+  const moveNum     = Math.floor(phaseStep / 2) + 1;
+  const dots        = isWhiteMove ? '.' : '...';
+  const sanClean    = san.replace(/[!?]/g, '');
 
-  // Якщо є автоходи суперника — граємо їх спочатку
-  if (step.auto && phaseStep > 0) {
-    playAutoSeq(step.auto, () => setTimeout(playMain, 500));
-  } else {
-    setTimeout(playMain, 500);
+  // Показуємо хід у текстовому полі
+  setText2('qText', `${sideIcon} ${sideName}: ${moveNum}${dots} ${sanClean}`);
+  renderExplainDots();
+
+  // Виконуємо хід
+  const mv = game.move({ from, to, promotion: promo });
+  if (mv) {
+    hlSq(from, to);
+    board.position(game.fen());
+    updateMoveLine();
+    speakMove(san);
   }
+
+  phaseStep++;
+
+  // Мій хід — довша пауза, щоб встигнути прочитати
+  const delay = isMyMove ? 1500 : 950;
+  setTimeout(animAllMoves, delay);
 }
 
-function playAutoSeq(moves, cb) {
-  let i = 0;
-  function next() {
-    if (i >= moves.length) { cb(); return; }
-    const m  = moves[i++];
-    const mv = game.move({ from: m.substring(0, 2), to: m.substring(2, 4), promotion: 'q' });
-    if (mv) { hlSq(m.substring(0, 2), m.substring(2, 4)); board.position(game.fen()); updateMoveLine(); }
-    setTimeout(next, 650);
+// Крапки-прогрес: показуємо тільки ходи ГРАВЦЯ
+function renderExplainDots() {
+  const trap   = ALL_TRAPS[currentTrap];
+  const total  = (trap.allMoves || []).length;
+  const playAs = trap.playAs || 'white';
+
+  const myIndices = [];
+  for (let i = 0; i < total; i++) {
+    const isW  = (i % 2 === 0);
+    const mine = (playAs === 'white' && isW) || (playAs === 'black' && !isW);
+    if (mine) myIndices.push(i);
   }
-  next();
+
+  const html = myIndices.map((gIdx, n) => {
+    let cls = 'step-dot';
+    if (gIdx < phaseStep)       cls += ' done';
+    else if (gIdx === phaseStep) cls += ' active';
+    return `<div class="${cls}">${n + 1}</div>`;
+  }).join('');
+
+  setHTML('stepDots',  html);
+  setHTML('stepDotsM', html);
 }
 
-function skipToPhase2() { enterPhase(2); }
+function skipToPhase2() {
+  explainPaused = true;
+  enterPhase(2);
+}
 
 /* ── ФАЗА 2: ВПРАВА ─────────────────────────── */
 function startPractice() {
@@ -691,45 +727,215 @@ function nextStep() {
 /* ── ЕКРАН ЗАВЕРШЕННЯ ФАЗИ ──────────────────── */
 function showPhaseEnd(ph, stars) {
   awaitingMove = false;
-  let icon, title, msg, btn1, btn2;
 
   if (ph === 2) {
-    icon  = '✏️';
-    title = 'Вправу пройдено!';
-    msg   = 'Тепер перевіримо без підказок.';
-    btn1  = { label: '🎯 До тесту →',    fn: 'enterPhase(3)' };
-    btn2  = { label: '↺ Ще раз',         fn: 'enterPhase(2)' };
-  } else {
-    const stStr = '⭐'.repeat(stars) + '☆'.repeat(3 - stars);
-    icon  = stars === 3 ? '🏆' : stars === 2 ? '🥈' : '🥉';
-    title = `Тест завершено! ${stStr}`;
-    msg   = stars === 3
-      ? 'Ідеально! Жодної помилки!'
-      : stars === 2
-      ? `Добре! ${testErrors} помилки.`
-      : `Потрібна практика — ${testErrors} помилок.`;
-    btn1 = { label: 'Наступна →',  fn: 'nextTrap()' };
-    btn2 = { label: '↺ Тест знову', fn: 'enterPhase(3)' };
+    // Вправу пройдено — звичайне завершення (без феєрверку)
+    const html = `
+      <div class="comp-icon">✏️</div>
+      <div class="comp-title">Вправу пройдено!</div>
+      <div class="comp-msg">Тепер перевіримо без підказок.</div>
+      <div class="comp-btns">
+        <button class="btn btn-primary" style="min-width:130px" onclick="enterPhase(3)">🎯 До тесту →</button>
+        <button class="btn btn-ghost" style="width:auto;margin:0;padding:10px 16px" onclick="enterPhase(2)">↺ Ще раз</button>
+      </div>`;
+    ['compDesktop','compMobile'].forEach(id => {
+      const e = el(id); if (e) { e.innerHTML = html; e.classList.add('show'); }
+    });
+    ['qCardDesktop','qCardMobile'].forEach(id => {
+      const e = el(id); if (e) e.style.display = 'none';
+    });
+    speak('Вправу пройдено! Тепер тест без підказок.');
+    return;
   }
 
-  const html = `
-    <div class="comp-icon">${icon}</div>
-    <div class="comp-title">${title}</div>
-    <div class="comp-msg">${msg}</div>
-    <div class="comp-btns">
-      <button class="btn btn-primary" style="min-width:130px" onclick="${btn1.fn}">${btn1.label}</button>
-      <button class="btn btn-ghost"   style="width:auto;margin:0;padding:10px 16px" onclick="${btn2.fn}">${btn2.label}</button>
+  // Фаза 3 — тест завершено
+  const trap    = ALL_TRAPS[currentTrap];
+  const correct = (trap.steps || []).length - testErrors;
+  const total   = (trap.steps || []).length;
+  const stStr   = '⭐'.repeat(stars) + '☆'.repeat(3 - stars);
+
+  if (stars === 3) {
+    // ⭐⭐⭐ — феєрверк + кубок!
+    showAward({
+      trophy:   '🏆',
+      cardClass: 'gold',
+      stars:    stStr,
+      title:    'Ідеально!',
+      subtitle: 'Жодної помилки! Ти майстер цієї пастки!',
+      trapName: trap.name.uk,
+      stats:    [
+        { num: total,    label: 'Ходів' },
+        { num: '100%',   label: 'Точність' },
+        { num: '⭐⭐⭐', label: 'Оцінка' },
+      ],
+      btn1: { label: 'Наступна пастка →', fn: 'closeAwardAndNext()' },
+      btn2: { label: '↺ Ще раз',          fn: 'closeAward();enterPhase(3)' },
+      fireworks: true,
+    });
+    speak('Ідеально! Жодної помилки! Ти майстер цієї пастки!');
+  } else if (stars === 2) {
+    // ⭐⭐ — кубок без феєрверку
+    showAward({
+      trophy:    '🥈',
+      cardClass: 'silver',
+      stars:     stStr,
+      title:     'Добре!',
+      subtitle:  `${testErrors} ${testErrors === 1 ? 'помилка' : 'помилки'}. Майже ідеально!`,
+      trapName:  trap.name.uk,
+      stats:     [
+        { num: correct,  label: 'Правильно' },
+        { num: testErrors, label: 'Помилки' },
+        { num: '⭐⭐',  label: 'Оцінка' },
+      ],
+      btn1: { label: 'Наступна →', fn: 'closeAwardAndNext()' },
+      btn2: { label: '↺ Тест знову', fn: 'closeAward();enterPhase(3)' },
+      fireworks: false,
+    });
+    speak(`Добре! ${testErrors} помилки. Спробуй ще раз для ідеального результату!`);
+  } else {
+    // ⭐ — бронза
+    showAward({
+      trophy:    '🥉',
+      cardClass: 'bronze',
+      stars:     stStr,
+      title:     'Пройдено!',
+      subtitle:  `${testErrors} помилок. Потрібна практика — спробуй вправу знову.`,
+      trapName:  trap.name.uk,
+      stats:     [
+        { num: correct,    label: 'Правильно' },
+        { num: testErrors, label: 'Помилок' },
+        { num: '⭐',      label: 'Оцінка' },
+      ],
+      btn1: { label: '✏️ Вправа знову', fn: 'closeAward();enterPhase(2)' },
+      btn2: { label: '↺ Тест знову',    fn: 'closeAward();enterPhase(3)' },
+      fireworks: false,
+    });
+    speak(`Пройдено! ${testErrors} помилок. Спробуй вправу ще раз.`);
+  }
+}
+
+// ── Показуємо оверлей нагороди ───────────────────────────────
+function showAward({ trophy, cardClass, stars, title, subtitle, trapName, stats, btn1, btn2, fireworks }) {
+  const statsHtml = stats.map(s =>
+    `<div class="award-stat">
+      <span class="award-stat-num">${s.num}</span>
+      <span class="award-stat-label">${s.label}</span>
+    </div>`
+  ).join('');
+
+  const overlay = el('awardOverlay');
+  if (!overlay) return;
+
+  overlay.innerHTML = `
+    <canvas id="fireworksCanvas"></canvas>
+    <div class="award-card ${cardClass}">
+      <span class="award-trophy">${trophy}</span>
+      <div class="award-stars">${stars}</div>
+      <div class="award-title">${title}</div>
+      <div class="award-subtitle">${subtitle}</div>
+      <div class="award-trap-name">«${trapName}»</div>
+      <div class="award-stats">${statsHtml}</div>
+      <div class="award-btns">
+        <button class="award-btn-primary"   onclick="${btn1.fn}">${btn1.label}</button>
+        <button class="award-btn-secondary" onclick="${btn2.fn}">${btn2.label}</button>
+      </div>
     </div>`;
 
-  ['compDesktop', 'compMobile'].forEach(id => {
-    const e = el(id); if (e) { e.innerHTML = html; e.classList.add('show'); }
-  });
-  ['qCardDesktop', 'qCardMobile'].forEach(id => {
-    const e = el(id); if (e) e.style.display = 'none';
-  });
+  overlay.classList.add('show');
+  document.body.style.overflow = 'hidden';
 
-  // Озвучуємо результат
-  speak(title + '. ' + msg);
+  if (fireworks) {
+    setTimeout(() => startFireworks(), 300);
+  }
+}
+
+function closeAward() {
+  const overlay = el('awardOverlay');
+  if (overlay) { overlay.classList.remove('show'); overlay.innerHTML = ''; }
+  document.body.style.overflow = '';
+  stopFireworks();
+}
+
+function closeAwardAndNext() {
+  closeAward();
+  nextTrap();
+}
+
+// ── ФЕЄРВЕРК (Canvas API) ─────────────────────────────────────
+let fwAnimId   = null;
+let fwParticles = [];
+
+function startFireworks() {
+  const canvas = el('fireworksCanvas');
+  if (!canvas) return;
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+  fwParticles   = [];
+
+  // Запускаємо кілька феєрверків
+  let launches = 0;
+  const launchInterval = setInterval(() => {
+    launchFirework(canvas);
+    launches++;
+    if (launches >= 8) clearInterval(launchInterval);
+  }, 400);
+
+  fwAnimId = requestAnimationFrame(() => drawFireworks(canvas));
+}
+
+function stopFireworks() {
+  if (fwAnimId) { cancelAnimationFrame(fwAnimId); fwAnimId = null; }
+  fwParticles = [];
+}
+
+function launchFirework(canvas) {
+  const x      = 80 + Math.random() * (canvas.width  - 160);
+  const y      = 60 + Math.random() * (canvas.height * 0.5);
+  const colors = ['#e8b84b','#c9922a','#fff8e7','#ff6b6b','#4ecdc4','#a8e6cf','#ffeaa7','#fd79a8','#74b9ff'];
+  const color  = colors[Math.floor(Math.random() * colors.length)];
+  const count  = 60 + Math.floor(Math.random() * 40);
+
+  for (let i = 0; i < count; i++) {
+    const angle  = (Math.PI * 2 / count) * i + Math.random() * 0.3;
+    const speed  = 2 + Math.random() * 6;
+    const size   = 2 + Math.random() * 3;
+    fwParticles.push({
+      x, y,
+      vx:    Math.cos(angle) * speed,
+      vy:    Math.sin(angle) * speed,
+      alpha: 1,
+      color,
+      size,
+      decay: 0.012 + Math.random() * 0.008,
+      gravity: 0.12,
+    });
+  }
+}
+
+function drawFireworks(canvas) {
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  fwParticles = fwParticles.filter(p => p.alpha > 0.02);
+
+  for (const p of fwParticles) {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fillStyle = p.color + Math.floor(p.alpha * 255).toString(16).padStart(2,'0');
+    ctx.fill();
+
+    p.x     += p.vx;
+    p.y     += p.vy;
+    p.vy    += p.gravity;
+    p.vx    *= 0.98;
+    p.alpha -= p.decay;
+    p.size  *= 0.995;
+  }
+
+  if (fwParticles.length > 0) {
+    fwAnimId = requestAnimationFrame(() => drawFireworks(canvas));
+  }
 }
 
 function hideCompletion() {
@@ -744,22 +950,24 @@ function hideCompletion() {
 function showFinalScore() {
   const done    = trapProgress.filter(p => p?.p3 > 0).length;
   const perfect = trapProgress.filter(p => p?.p3 === 3).length;
-  const html = `
-    <div class="comp-icon">🏆</div>
-    <div class="comp-title">Всі пастки вивчено!</div>
-    <div class="comp-score">${done} / ${ALL_TRAPS.length}</div>
-    <div class="comp-msg">Ідеально: ${perfect} пасток ⭐⭐⭐</div>
-    <div class="comp-btns">
-      <button class="btn btn-primary" style="min-width:140px"
-        onclick="currentTrap=0;currentPhase=1;loadTrap()">↺ Почати знову</button>
-    </div>`;
-  ['compDesktop', 'compMobile'].forEach(id => {
-    const e = el(id); if (e) { e.innerHTML = html; e.classList.add('show'); }
+
+  showAward({
+    trophy:    '🏆',
+    cardClass: 'final gold',
+    stars:     '⭐⭐⭐',
+    title:     'Всі пастки вивчено!',
+    subtitle:  `Ти вивчив усі ${ALL_TRAPS.length} пасток Smart Chess System®`,
+    trapName:  `Ідеально пройдено: ${perfect} з ${done}`,
+    stats:     [
+      { num: done,              label: 'Пройдено' },
+      { num: perfect,           label: 'Ідеально' },
+      { num: totalCorrect,      label: 'Ходів правильно' },
+    ],
+    btn1:      { label: '↺ Почати знову', fn: 'closeAward();currentTrap=0;currentPhase=1;loadTrap()' },
+    btn2:      { label: '📋 Меню пасток', fn: 'closeAward();openMenu()' },
+    fireworks: true,
   });
-  ['qCardDesktop', 'qCardMobile'].forEach(id => {
-    const e = el(id); if (e) e.style.display = 'none';
-  });
-  speak('Вітаємо! Всі пастки вивчено!');
+  speak('Вітаємо! Ти вивчив усі шахові пастки! Блискучий результат!');
 }
 
 /* ───────────────────────────────────────────────────────
