@@ -826,8 +826,8 @@ function showAward({ trophy, cardClass, stars, title, subtitle, trapName, stats,
   const overlay = el('awardOverlay');
   if (!overlay) return;
 
+  // Картка нагороди (без canvas — він окремо)
   overlay.innerHTML = `
-    <canvas id="fireworksCanvas"></canvas>
     <div class="award-card ${cardClass}">
       <span class="award-trophy">${trophy}</span>
       <div class="award-stars">${stars}</div>
@@ -845,7 +845,8 @@ function showAward({ trophy, cardClass, stars, title, subtitle, trapName, stats,
   document.body.style.overflow = 'hidden';
 
   if (fireworks) {
-    setTimeout(() => startFireworks(), 300);
+    // Невелика затримка аби DOM встиг відрендеритись
+    setTimeout(() => startFireworks(), 200);
   }
 }
 
@@ -866,26 +867,44 @@ let fwAnimId   = null;
 let fwParticles = [];
 
 function startFireworks() {
-  const canvas = el('fireworksCanvas');
-  if (!canvas) return;
+  // Знаходимо або створюємо canvas для феєрверку
+  let canvas = el('fireworksCanvas');
+  if (!canvas) {
+    canvas = document.createElement('canvas');
+    canvas.id = 'fireworksCanvas';
+    canvas.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;z-index:9999;pointer-events:none';
+    document.body.appendChild(canvas);
+  }
   canvas.width  = window.innerWidth;
   canvas.height = window.innerHeight;
   fwParticles   = [];
 
-  // Запускаємо кілька феєрверків
+  // Серія залпів
   let launches = 0;
-  const launchInterval = setInterval(() => {
+  if (window._fwInterval) clearInterval(window._fwInterval);
+  window._fwInterval = setInterval(() => {
     launchFirework(canvas);
     launches++;
-    if (launches >= 8) clearInterval(launchInterval);
-  }, 400);
+    if (launches >= 10) {
+      clearInterval(window._fwInterval);
+      window._fwInterval = null;
+    }
+  }, 350);
 
+  // Одразу перший залп
+  launchFirework(canvas);
+
+  if (fwAnimId) cancelAnimationFrame(fwAnimId);
   fwAnimId = requestAnimationFrame(() => drawFireworks(canvas));
 }
 
 function stopFireworks() {
   if (fwAnimId) { cancelAnimationFrame(fwAnimId); fwAnimId = null; }
+  if (window._fwInterval) { clearInterval(window._fwInterval); window._fwInterval = null; }
   fwParticles = [];
+  // Видаляємо canvas
+  const c = el('fireworksCanvas');
+  if (c) c.remove();
 }
 
 function launchFirework(canvas) {
@@ -914,7 +933,9 @@ function launchFirework(canvas) {
 
 function drawFireworks(canvas) {
   const ctx = canvas.getContext('2d');
-  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  // Прозоре очищення — частинки залишають слід через alpha
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = 'rgba(0,0,0,0.12)';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   fwParticles = fwParticles.filter(p => p.alpha > 0.02);
