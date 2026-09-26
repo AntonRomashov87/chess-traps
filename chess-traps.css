@@ -830,3 +830,181 @@ header {
   .app-main { padding: 6px 8px 60px; }
   #board    { max-width: 320px; margin: 0 auto; }
 }
+
+/* ═══════════════════════════════════════════════════════
+   ФЕЄРВЕРК І ЕКРАН НАГОРОДИ
+═══════════════════════════════════════════════════════ */
+
+/* Оверлей нагороди — повний екран */
+.award-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: rgba(0,0,0,.85);
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+.award-overlay.show { display: flex; }
+
+/* Канвас феєрверку — позаду всього */
+#fireworksCanvas {
+  position: fixed;
+  inset: 0;
+  z-index: 499;
+  pointer-events: none;
+}
+
+/* Картка нагороди */
+.award-card {
+  position: relative;
+  z-index: 501;
+  background: linear-gradient(145deg, #2a1f0e 0%, #1a1208 100%);
+  border: 3px solid var(--gold);
+  border-radius: 20px;
+  padding: 40px 36px 32px;
+  text-align: center;
+  max-width: 420px;
+  width: 90%;
+  box-shadow: 0 0 60px rgba(201,146,42,.4), 0 0 120px rgba(201,146,42,.15);
+  animation: awardPop .5s cubic-bezier(.175,.885,.32,1.275) both;
+}
+@keyframes awardPop {
+  from { transform: scale(.4) rotate(-8deg); opacity: 0; }
+  to   { transform: scale(1)  rotate(0deg);  opacity: 1; }
+}
+
+.award-trophy {
+  font-size: 80px;
+  line-height: 1;
+  margin-bottom: 10px;
+  display: block;
+  animation: trophyBounce 1s ease .4s both;
+  filter: drop-shadow(0 0 20px rgba(201,146,42,.8));
+}
+@keyframes trophyBounce {
+  0%   { transform: scale(0) rotate(-20deg); }
+  60%  { transform: scale(1.2) rotate(5deg); }
+  80%  { transform: scale(.9) rotate(-3deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+.award-stars {
+  font-size: 36px;
+  letter-spacing: 6px;
+  margin-bottom: 12px;
+  animation: starsGlow 1.5s ease-in-out infinite alternate;
+}
+@keyframes starsGlow {
+  from { filter: drop-shadow(0 0 4px #e8b84b); }
+  to   { filter: drop-shadow(0 0 16px #e8b84b) drop-shadow(0 0 30px #c9922a); }
+}
+
+.award-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--gold);
+  margin-bottom: 8px;
+  line-height: 1.2;
+}
+.award-subtitle {
+  font-size: 14px;
+  color: var(--parchment);
+  opacity: .85;
+  margin-bottom: 6px;
+  line-height: 1.5;
+}
+.award-trap-name {
+  font-family: 'Playfair Display', serif;
+  font-size: 16px;
+  color: var(--gold-lt);
+  margin-bottom: 20px;
+  font-style: italic;
+}
+.award-stats {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+.award-stat {
+  background: rgba(201,146,42,.12);
+  border: 1px solid rgba(201,146,42,.3);
+  border-radius: 8px;
+  padding: 10px 16px;
+  min-width: 80px;
+}
+.award-stat-num {
+  font-size: 24px;
+  font-weight: 900;
+  color: var(--gold);
+  display: block;
+}
+.award-stat-label {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.award-btns {
+  display: flex;
+  gap: 10px;
+  flex-direction: column;
+}
+.award-btn-primary {
+  padding: 14px 20px;
+  background: var(--gold);
+  color: var(--ink);
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .2s;
+  font-family: 'Inter', sans-serif;
+}
+.award-btn-primary:hover { background: var(--gold-lt); transform: scale(1.02); }
+.award-btn-secondary {
+  padding: 11px 20px;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid #3a2f1a;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .2s;
+  font-family: 'Inter', sans-serif;
+}
+.award-btn-secondary:hover { color: var(--parchment); border-color: var(--muted); }
+
+/* Медаль замість кубка для 2 зірок */
+.award-card.silver .award-trophy { filter: drop-shadow(0 0 16px rgba(180,180,180,.7)); }
+.award-card.silver .award-title   { color: #c0c0c0; }
+.award-card.silver .award-stars   { animation: none; filter: none; }
+
+/* Бронза для 1 зірки */
+.award-card.bronze .award-trophy { filter: drop-shadow(0 0 16px rgba(180,120,60,.7)); }
+.award-card.bronze .award-title   { color: #cd7f32; }
+.award-card.bronze .award-stars   { animation: none; filter: none; }
+
+/* Фінальний екран */
+.award-card.final .award-trophy {
+  font-size: 96px;
+  animation: trophyBounce 1s ease .3s both, trophyFloat 3s ease-in-out 1.3s infinite;
+}
+@keyframes trophyFloat {
+  0%,100% { transform: translateY(0) rotate(-2deg); }
+  50%      { transform: translateY(-12px) rotate(2deg); }
+}
+
+@media (max-width: 480px) {
+  .award-card { padding: 28px 20px 24px; }
+  .award-trophy { font-size: 60px; }
+  .award-title  { font-size: 22px; }
+  .award-stats  { gap: 8px; }
+  .award-stat   { padding: 8px 10px; min-width: 60px; }
+  .award-stat-num { font-size: 20px; }
+}
