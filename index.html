@@ -294,27 +294,40 @@ header {
   max-width: 1200px;
   margin: 0 auto;
   padding: 16px 14px 80px;
-  display: flex;
-  flex-direction: row;
-  gap: 14px;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap;
+  gap: 16px;
   align-items: start;
 }
 .board-panel {
-  flex: 1 1 0;
+  flex: 1 1 auto;
   min-width: 0;
+  max-width: calc(100% - 350px);
 }
 .sidebar {
-  flex: 0 0 340px;
-  width: 340px;
-  min-width: 240px;
+  flex: 0 0 340px !important;
+  width: 340px !important;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
-@media (max-width: 1100px) { .sidebar { flex: 0 0 300px; width: 300px; } }
-@media (max-width: 900px)  { .sidebar { flex: 0 0 260px; width: 260px; } }
-@media (max-width: 760px)  {
-  .sidebar { flex: 0 0 200px; width: 200px; }
+@media (max-width: 1100px) {
+  .board-panel { max-width: calc(100% - 310px); }
+  .sidebar { flex: 0 0 300px !important; width: 300px !important; }
+}
+@media (max-width: 900px) {
+  .board-panel { max-width: calc(100% - 270px); }
+  .sidebar { flex: 0 0 260px !important; width: 260px !important; }
+}
+@media (max-width: 760px) {
+  .board-panel { max-width: calc(100% - 210px); }
+  .sidebar { flex: 0 0 200px !important; width: 200px !important; }
   .trap-name { font-size: 16px; }
   .card-desc { font-size: 11px; }
   .info-card { padding: 8px; }
+  .card-title { font-size: 10px; }
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -874,8 +887,10 @@ header {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 10px;
+  margin-top: 10px;
+  margin-bottom: 2px;
   flex-wrap: wrap;
+  padding: 6px 0;
 }
 .ctrl-btn {
   background: #2a1f10;
@@ -1503,14 +1518,7 @@ header {
         <div class="question-card" id="qCardMobile">
           <div class="phase-tabs" id="phaseTabsMobile"></div>
           <div class="q-label" id="qLabelM">ФАЗА 1</div>
-          <div class="explain-controls" id="explainControlsM" style="display:none">
-            <button class="ctrl-btn" onclick="explainGoTo(0)"    title="На початок">⏮</button>
-            <button class="ctrl-btn" id="ctrlPlayM" onclick="explainToggle()" title="Пауза/Старт">⏸</button>
-            <button class="ctrl-btn" onclick="explainStepBack()" title="Назад">⏪</button>
-            <button class="ctrl-btn" onclick="explainStepFwd()"  title="Вперед">⏩</button>
-            <button class="ctrl-btn" onclick="explainGoToEnd()"  title="В кінець">⏭</button>
-            <button class="ctrl-speed" onclick="cycleSpeed()">🐢 ×1</button>
-          </div>
+
           <div class="q-text"  id="qTextM">...</div>
           <div class="step-dots" id="stepDotsM"></div>
           <div class="feedback" id="feedbackM"></div>
@@ -1534,6 +1542,18 @@ header {
         <div class="move-history-label" id="histLabel">Хід гри</div>
         <div class="moves-line" id="movesLine">—</div>
       </div>
+
+      <!-- ── КОНТРОЛІ ВІДТВОРЕННЯ (під дошкою, фаза 1) ── -->
+      <div class="explain-controls" id="explainControls" style="display:none">
+        <button class="ctrl-btn" id="ctrlFirst" onclick="explainGoTo(0)"    title="На початок">⏮</button>
+        <button class="ctrl-btn" id="ctrlPrev"  onclick="explainStepBack()" title="Крок назад">⏪</button>
+        <button class="ctrl-btn" id="ctrlPlay"  onclick="explainToggle()"   title="Пауза / Старт">⏸</button>
+        <button class="ctrl-btn" id="ctrlNext"  onclick="explainStepFwd()"  title="Крок вперед">⏩</button>
+        <button class="ctrl-btn" id="ctrlLast"  onclick="explainGoToEnd()"  title="В кінець">⏭</button>
+        <button class="ctrl-speed" id="ctrlSpeed" onclick="cycleSpeed()">🐢 ×1</button>
+        <span class="ctrl-counter" id="ctrlCounter">0 / 0</span>
+      </div>
+
     </div><!-- /board-panel -->
 
     <!-- ПРАВА КОЛОНКА: САЙДБАР -->
@@ -1562,16 +1582,7 @@ header {
       <div class="question-card" id="qCardDesktop">
         <div class="phase-tabs" id="phaseTabsDesktop"></div>
         <div class="q-label" id="qLabel">ФАЗА 1</div>
-        <!-- Контролі відтворення (тільки у фазі 1) -->
-        <div class="explain-controls" id="explainControls" style="display:none">
-          <button class="ctrl-btn" id="ctrlFirst"  onclick="explainGoTo(0)"    title="На початок">⏮</button>
-          <button class="ctrl-btn" id="ctrlPrev"   onclick="explainStepBack()" title="Назад">⏪</button>
-          <button class="ctrl-btn" id="ctrlPlay"   onclick="explainToggle()"   title="Пауза/Старт">⏸</button>
-          <button class="ctrl-btn" id="ctrlNext"   onclick="explainStepFwd()"  title="Вперед">⏩</button>
-          <button class="ctrl-btn" id="ctrlLast"   onclick="explainGoToEnd()"  title="В кінець">⏭</button>
-          <button class="ctrl-speed" id="ctrlSpeed" onclick="cycleSpeed()">🐢 ×1</button>
-          <span class="ctrl-counter" id="ctrlCounter">0 / 0</span>
-        </div>
+
         <div class="q-text"  id="qText">...</div>
         <div class="step-dots" id="stepDots"></div>
         <div class="feedback" id="feedback"></div>
@@ -4493,9 +4504,8 @@ function startExplain() {
 
 // Показуємо/ховаємо контролі
 function showExplainControls(show) {
-  ['explainControls','explainControlsM'].forEach(id => {
-    const e = el(id); if (e) e.style.display = show ? 'flex' : 'none';
-  });
+  const e = el('explainControls');
+  if (e) e.style.display = show ? 'flex' : 'none';
 }
 
 // Оновлюємо кнопку швидкості
@@ -4539,9 +4549,8 @@ function explainToggle() {
 
 function updatePlayBtn(isPaused) {
   const icon = isPaused ? '▶' : '⏸';
-  ['ctrlPlay','ctrlPlayM'].forEach(id => {
-    const e = el(id); if (e) e.textContent = icon;
-  });
+  const e = el('ctrlPlay');
+  if (e) e.textContent = icon;
 }
 
 // Перемотка на конкретний хід
