@@ -294,19 +294,24 @@ header {
   max-width: 1200px;
   margin: 0 auto;
   padding: 16px 14px 80px;
-  display: grid;
-  grid-template-columns: 1fr 340px;
+  display: flex;
+  flex-direction: row;
   gap: 14px;
   align-items: start;
 }
-@media (max-width: 1100px) {
-  .app-main { grid-template-columns: 1fr 300px; }
+.board-panel {
+  flex: 1 1 0;
+  min-width: 0;
 }
-@media (max-width: 900px) {
-  .app-main { grid-template-columns: 1fr 260px; }
+.sidebar {
+  flex: 0 0 340px;
+  width: 340px;
+  min-width: 240px;
 }
-@media (max-width: 760px) {
-  .app-main { grid-template-columns: 1fr 200px; }
+@media (max-width: 1100px) { .sidebar { flex: 0 0 300px; width: 300px; } }
+@media (max-width: 900px)  { .sidebar { flex: 0 0 260px; width: 260px; } }
+@media (max-width: 760px)  {
+  .sidebar { flex: 0 0 200px; width: 200px; }
   .trap-name { font-size: 16px; }
   .card-desc { font-size: 11px; }
   .info-card { padding: 8px; }
@@ -811,19 +816,19 @@ header {
 /* ── МАЛИЙ ПЛАНШЕТ (до 720px) ───────────────── */
 /* sidebar-w задається безпосередньо в grid-template-columns */
 
-/* ── МОБІЛЬНИЙ — sidebar іде вниз ───────────── */
+/* ── МОБІЛЬНИЙ — колонки йдуть вертикально ──── */
 @media (max-width: 600px) {
   .app-main {
-    grid-template-columns: 1fr;
+    flex-direction: column;
     padding: 10px 10px 80px;
     gap: 12px;
   }
-  /* sidebar НЕ ховаємо — він іде під дошку */
-  .sidebar         { display: flex; }
-  .q-mobile-wrap   { display: block; }
-  .mobile-info     { display: none; } /* mobile-info не потрібен бо sidebar видимий */
-  #board           { max-width: 100%; }
-  .trap-name       { font-size: 19px; }
+  .sidebar   { width: 100%; flex: 1 1 auto; }
+  .board-panel { width: 100%; }
+  .q-mobile-wrap { display: block; }
+  .mobile-info   { display: none; }
+  #board         { max-width: 100%; }
+  .trap-name     { font-size: 19px; }
 }
 
 /* ── ТЕЛЕФОН (до 480px) ─────────────────────── */
@@ -861,6 +866,118 @@ header {
   .app-main { padding: 6px 8px 60px; }
   #board    { max-width: 320px; margin: 0 auto; }
 }
+
+/* ═══════════════════════════════════════════════════════
+   КОНТРОЛІ ВІДТВОРЕННЯ (ФАЗА 1)
+═══════════════════════════════════════════════════════ */
+.explain-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.ctrl-btn {
+  background: #2a1f10;
+  border: 1px solid var(--muted);
+  color: var(--parchment);
+  padding: 6px 10px;
+  border-radius: 5px;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  min-height: 36px;
+  min-width: 36px;
+  transition: all .15s;
+  -webkit-tap-highlight-color: transparent;
+  display: flex; align-items: center; justify-content: center;
+}
+.ctrl-btn:hover  { background: var(--gold); color: var(--ink); border-color: var(--gold); }
+.ctrl-btn:active { transform: scale(.94); }
+.ctrl-btn.active { background: var(--gold); color: var(--ink); border-color: var(--gold); }
+.ctrl-btn:disabled { opacity: .35; cursor: not-allowed; }
+
+.ctrl-speed {
+  background: #2a1f10;
+  border: 1px solid var(--muted);
+  color: var(--parchment);
+  padding: 5px 8px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 36px;
+  transition: all .15s;
+  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
+}
+.ctrl-speed:hover { border-color: var(--gold); color: var(--gold-lt); }
+
+.ctrl-counter {
+  font-family: 'Fira Mono', monospace;
+  font-size: 12px;
+  color: var(--muted);
+  padding: 0 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── ОЦІНКА STOCKFISH ──────────────────────────────── */
+.eval-bar-wrap {
+  margin-top: 10px;
+  background: #1a1208;
+  border: 1px solid #3a2f1a;
+  border-radius: 6px;
+  overflow: hidden;
+  display: none;
+}
+.eval-bar-wrap.show { display: block; }
+.eval-bar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px 4px;
+}
+.eval-bar-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.eval-bar-score {
+  font-family: 'Fira Mono', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gold-lt);
+}
+.eval-bar {
+  height: 8px;
+  background: #1a1208;
+  position: relative;
+  overflow: hidden;
+}
+.eval-bar-white {
+  height: 100%;
+  background: var(--parchment);
+  transition: width .6s ease;
+  min-width: 4px;
+}
+.eval-verdict {
+  font-size: 11px;
+  color: var(--parchment);
+  padding: 4px 10px 6px;
+  line-height: 1.4;
+}
+.eval-verdict strong { color: var(--gold); }
+.eval-spinner {
+  display: none;
+  padding: 8px 10px;
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+}
+.eval-spinner.show { display: block; }
 
 /* ═══════════════════════════════════════════════════════
    ФЕЄРВЕРК І ЕКРАН НАГОРОДИ
@@ -1220,7 +1337,6 @@ header {
 .trap-tile.perfect .trap-tile-crown { display: block; }
 
 /* ── APP-MAIN: позиція кнопки "Назад" ───────────── */
-.app-main { position: relative; }
 
 /* ── МОБІЛЬНА АДАПТАЦІЯ СІТКИ ────────────────────── */
 @media (max-width: 720px) {
@@ -1387,6 +1503,14 @@ header {
         <div class="question-card" id="qCardMobile">
           <div class="phase-tabs" id="phaseTabsMobile"></div>
           <div class="q-label" id="qLabelM">ФАЗА 1</div>
+          <div class="explain-controls" id="explainControlsM" style="display:none">
+            <button class="ctrl-btn" onclick="explainGoTo(0)"    title="На початок">⏮</button>
+            <button class="ctrl-btn" id="ctrlPlayM" onclick="explainToggle()" title="Пауза/Старт">⏸</button>
+            <button class="ctrl-btn" onclick="explainStepBack()" title="Назад">⏪</button>
+            <button class="ctrl-btn" onclick="explainStepFwd()"  title="Вперед">⏩</button>
+            <button class="ctrl-btn" onclick="explainGoToEnd()"  title="В кінець">⏭</button>
+            <button class="ctrl-speed" onclick="cycleSpeed()">🐢 ×1</button>
+          </div>
           <div class="q-text"  id="qTextM">...</div>
           <div class="step-dots" id="stepDotsM"></div>
           <div class="feedback" id="feedbackM"></div>
@@ -1438,9 +1562,29 @@ header {
       <div class="question-card" id="qCardDesktop">
         <div class="phase-tabs" id="phaseTabsDesktop"></div>
         <div class="q-label" id="qLabel">ФАЗА 1</div>
+        <!-- Контролі відтворення (тільки у фазі 1) -->
+        <div class="explain-controls" id="explainControls" style="display:none">
+          <button class="ctrl-btn" id="ctrlFirst"  onclick="explainGoTo(0)"    title="На початок">⏮</button>
+          <button class="ctrl-btn" id="ctrlPrev"   onclick="explainStepBack()" title="Назад">⏪</button>
+          <button class="ctrl-btn" id="ctrlPlay"   onclick="explainToggle()"   title="Пауза/Старт">⏸</button>
+          <button class="ctrl-btn" id="ctrlNext"   onclick="explainStepFwd()"  title="Вперед">⏩</button>
+          <button class="ctrl-btn" id="ctrlLast"   onclick="explainGoToEnd()"  title="В кінець">⏭</button>
+          <button class="ctrl-speed" id="ctrlSpeed" onclick="cycleSpeed()">🐢 ×1</button>
+          <span class="ctrl-counter" id="ctrlCounter">0 / 0</span>
+        </div>
         <div class="q-text"  id="qText">...</div>
         <div class="step-dots" id="stepDots"></div>
         <div class="feedback" id="feedback"></div>
+        <!-- Оцінка Stockfish -->
+        <div class="eval-bar-wrap" id="evalBarWrap">
+          <div class="eval-bar-header">
+            <span class="eval-bar-label">⚙ Stockfish</span>
+            <span class="eval-bar-score" id="evalScore">0.00</span>
+          </div>
+          <div class="eval-bar"><div class="eval-bar-white" id="evalBarWhite" style="width:50%"></div></div>
+          <div class="eval-verdict" id="evalVerdict"></div>
+        </div>
+        <div class="eval-spinner" id="evalSpinner">⚙ Аналізую позицію...</div>
         <div class="btn-row">
           <button class="btn btn-primary"   id="hintBtn" onclick="showHint()">💡 Підказка</button>
           <button class="btn btn-secondary" id="nextBtn" onclick="nextStep()" disabled>Далі →</button>
@@ -4322,9 +4466,13 @@ function onTabClick(n) {
 }
 
 /* ── ФАЗА 1: ПОЯСНЕННЯ ──────────────────────── */
-// Відтворюємо ВСІ ходи партії (allMoves) — не тільки кроки гравця
+// Відтворюємо ВСІ ходи партії (allMoves)
 
-let explainPaused = false;
+let explainPaused  = false;
+let explainSpeed   = 1;      // коефіцієнт швидкості
+const SPEEDS       = [0.5, 1, 1.5, 2, 3];
+const SPEED_LABELS = ['🐢 ×½','🐢 ×1','🐇 ×1.5','🐇 ×2','⚡ ×3'];
+let explainTimer   = null;   // поточний setTimeout
 
 function startExplain() {
   setText2('qLabel', 'ФАЗА 1 — ПОЯСНЕННЯ');
@@ -4333,9 +4481,117 @@ function startExplain() {
   disableBtn('hintBtn', true);
   showSkipBtn(true);
   explainPaused = false;
-  phaseStep = 0;
+  explainSpeed  = 1;
+  phaseStep     = 0;
+  updateSpeedBtn();
+  showExplainControls(true);
+  hideEval();
   renderExplainDots();
-  setTimeout(animAllMoves, 800);
+  if (explainTimer) clearTimeout(explainTimer);
+  explainTimer = setTimeout(animAllMoves, 600);
+}
+
+// Показуємо/ховаємо контролі
+function showExplainControls(show) {
+  ['explainControls','explainControlsM'].forEach(id => {
+    const e = el(id); if (e) e.style.display = show ? 'flex' : 'none';
+  });
+}
+
+// Оновлюємо кнопку швидкості
+function updateSpeedBtn() {
+  const idx   = SPEEDS.indexOf(explainSpeed);
+  const label = SPEED_LABELS[idx] || '🐢 ×1';
+  ['ctrlSpeed'].forEach(id => {
+    const e = el(id); if (e) e.textContent = label;
+  });
+  document.querySelectorAll('.ctrl-speed').forEach(e => e.textContent = label);
+}
+
+// Оновлюємо лічильник ходів
+function updateCtrlCounter() {
+  const trap  = ALL_TRAPS[currentTrap];
+  const total = (trap?.allMoves || []).length;
+  const e = el('ctrlCounter');
+  if (e) e.textContent = `${phaseStep} / ${total}`;
+}
+
+// Цикл швидкостей
+function cycleSpeed() {
+  const idx    = SPEEDS.indexOf(explainSpeed);
+  explainSpeed = SPEEDS[(idx + 1) % SPEEDS.length];
+  updateSpeedBtn();
+}
+
+// Пауза / Старт
+function explainToggle() {
+  if (explainPaused) {
+    explainPaused = false;
+    updatePlayBtn(false);
+    if (explainTimer) clearTimeout(explainTimer);
+    explainTimer = setTimeout(animAllMoves, 50);
+  } else {
+    explainPaused = true;
+    if (explainTimer) clearTimeout(explainTimer);
+    updatePlayBtn(true);
+  }
+}
+
+function updatePlayBtn(isPaused) {
+  const icon = isPaused ? '▶' : '⏸';
+  ['ctrlPlay','ctrlPlayM'].forEach(id => {
+    const e = el(id); if (e) e.textContent = icon;
+  });
+}
+
+// Перемотка на конкретний хід
+function explainGoTo(step) {
+  if (explainTimer) clearTimeout(explainTimer);
+  explainPaused = true;
+  updatePlayBtn(true);
+
+  const trap = ALL_TRAPS[currentTrap];
+  const allMoves = trap.allMoves || [];
+  const allSan   = trap.allSan   || [];
+
+  // Перевідтворюємо позицію до потрібного ходу
+  game = new Chess(trap.startFen);
+  for (let i = 0; i < step && i < allMoves.length; i++) {
+    const u = allMoves[i];
+    game.move({ from: u.substring(0,2), to: u.substring(2,4), promotion: u[4] || 'q' });
+  }
+  board.position(game.fen());
+  updateMoveLine();
+  phaseStep = step;
+  if (step > 0 && step <= allMoves.length) {
+    const uci  = allMoves[step - 1];
+    const san  = allSan[step - 1] || '';
+    const isW  = ((step-1) % 2 === 0);
+    const pa   = trap.playAs || 'white';
+    const mine = (pa==='white' && isW) || (pa==='black' && !isW);
+    const side = mine ? '🎯 Твій хід' : (isW ? '⚪ Білі' : '⚫ Чорні');
+    const num  = Math.floor((step-1)/2) + 1;
+    const dots = isW ? '.' : '...';
+    setText2('qText', `${side}: ${num}${dots} ${san.replace(/[!?]/g,'')}`);
+    if (uci) hlSq(uci.substring(0,2), uci.substring(2,4));
+  } else if (step === 0) {
+    setText2('qText', '👁 Початкова позиція');
+  }
+  renderExplainDots();
+  updateCtrlCounter();
+  if (step >= allMoves.length) onExplainFinished();
+}
+
+function explainStepBack() {
+  explainGoTo(Math.max(0, phaseStep - 1));
+}
+function explainStepFwd() {
+  const trap = ALL_TRAPS[currentTrap];
+  explainGoTo(Math.min((trap.allMoves||[]).length, phaseStep + 1));
+}
+function explainGoToEnd() {
+  const trap = ALL_TRAPS[currentTrap];
+  explainGoTo((trap.allMoves||[]).length);
 }
 
 function animAllMoves() {
@@ -4347,17 +4603,7 @@ function animAllMoves() {
   const playAs   = trap.playAs   || 'white';
 
   if (phaseStep >= allMoves.length) {
-    // Всі ходи зіграно
-    trapProgress[currentTrap].p1 = true;
-    saveProgress();
-    renderMenu();
-    updatePhaseTabs();
-    setText2('qText', '✅ Пастку переглянуто! Тепер спробуй сам.');
-    disableBtn('nextBtn', false);
-    setLabel('nextBtn',  'До вправи →');
-    setLabel('nextBtnM', 'До вправи →');
-    showSkipBtn(false);
-    renderExplainDots();
+    onExplainFinished();
     return;
   }
 
@@ -4390,13 +4636,134 @@ function animAllMoves() {
   }
 
   phaseStep++;
+  updateCtrlCounter();
 
-  // Мій хід — довша пауза, щоб встигнути прочитати
-  const delay = isMyMove ? 1500 : 950;
-  setTimeout(animAllMoves, delay);
+  // Мій хід — довша пауза; всі паузи діляться на швидкість
+  const base  = isMyMove ? 1400 : 900;
+  const delay = Math.round(base / explainSpeed);
+  if (explainTimer) clearTimeout(explainTimer);
+  explainTimer = setTimeout(animAllMoves, delay);
 }
 
 // Крапки-прогрес: показуємо тільки ходи ГРАВЦЯ
+// ── ЗАВЕРШЕННЯ ПОЯСНЕННЯ + STOCKFISH ────────────
+function onExplainFinished() {
+  trapProgress[currentTrap].p1 = true;
+  saveProgress();
+  renderMenu();
+  updatePhaseTabs();
+  setText2('qText', '✅ Пастку переглянуто! Тепер спробуй сам.');
+  disableBtn('nextBtn', false);
+  setLabel('nextBtn',  'До вправи →');
+  setLabel('nextBtnM', 'До вправи →');
+  showSkipBtn(false);
+  renderExplainDots();
+  updateCtrlCounter();
+  updatePlayBtn(true);
+  // Запускаємо Stockfish аналіз
+  runStockfishEval();
+}
+
+function hideEval() {
+  const w = el('evalBarWrap'); if (w) w.classList.remove('show');
+  const s = el('evalSpinner'); if (s) s.classList.remove('show');
+}
+
+// ── STOCKFISH через Lichess Cloud Eval API ────────
+function runStockfishEval() {
+  const fen = game.fen();
+  const spinner = el('evalSpinner');
+  const wrap    = el('evalBarWrap');
+  if (spinner) spinner.classList.add('show');
+  if (wrap)    wrap.classList.remove('show');
+
+  // Lichess безкоштовний cloud eval API
+  fetch(`https://lichess.org/api/cloud-eval?fen=${encodeURIComponent(fen)}&multiPv=1`)
+    .then(r => r.json())
+    .then(data => {
+      if (spinner) spinner.classList.remove('show');
+      const pvs = data.pvs || [];
+      if (!pvs.length) { showEvalFallback(); return; }
+      const cp = pvs[0].cp;
+      const mate = pvs[0].mate;
+      showEval(fen, cp, mate);
+    })
+    .catch(() => {
+      if (spinner) spinner.classList.remove('show');
+      showEvalFallback();
+    });
+}
+
+function showEval(fen, cp, mate) {
+  const wrap    = el('evalBarWrap');
+  const score   = el('evalScore');
+  const bar     = el('evalBarWhite');
+  const verdict = el('evalVerdict');
+  if (!wrap) return;
+
+  let scoreText = '';
+  let whitePercent = 50;
+  let verdictText  = '';
+
+  if (mate !== undefined && mate !== null) {
+    // Мат
+    const side = mate > 0 ? 'Білі' : 'Чорні';
+    scoreText   = `М${Math.abs(mate)}`;
+    whitePercent = mate > 0 ? 95 : 5;
+    verdictText  = `<strong>${side} ставлять мат через ${Math.abs(mate)} ходів!</strong>`;
+  } else if (cp !== undefined) {
+    // Сантипішаки → пішаки
+    const pawns  = cp / 100;
+    const absPawns = Math.abs(pawns);
+    scoreText = (pawns >= 0 ? '+' : '') + pawns.toFixed(2);
+
+    // Відсоток для бар (логарифмічна шкала)
+    const sigmoid = x => 1 / (1 + Math.exp(-x / 250));
+    whitePercent = Math.round(sigmoid(cp) * 100);
+
+    // Вердикт
+    const trap = ALL_TRAPS[currentTrap];
+    const playAs = trap?.playAs || 'white';
+    const winner = cp > 0 ? 'Білі' : 'Чорні';
+    const loser  = cp > 0 ? 'Чорні' : 'Білі';
+
+    if (absPawns < 0.3)      verdictText = '<strong>Рівна позиція</strong> — пастка не спрацювала?';
+    else if (absPawns < 1.0) verdictText = `<strong>${winner} трохи краще</strong> (${scoreText} пішака)`;
+    else if (absPawns < 2.0) verdictText = `<strong>${winner} мають перевагу</strong> — пастка спрацювала!`;
+    else if (absPawns < 3.5) verdictText = `<strong>${winner} виграють</strong> — матеріальна перевага!`;
+    else                      verdictText = `<strong>${winner} виграють</strong> — позиція безнадійна для ${loser}!`;
+  }
+
+  if (score)   score.textContent = scoreText;
+  if (bar)     bar.style.width   = whitePercent + '%';
+  if (verdict) verdict.innerHTML = verdictText;
+  if (wrap)    wrap.classList.add('show');
+}
+
+function showEvalFallback() {
+  // Якщо API недоступний — показуємо базову інформацію
+  const trap   = ALL_TRAPS[currentTrap];
+  const result = trap?.result || '*';
+  const wrap    = el('evalBarWrap');
+  const score   = el('evalScore');
+  const bar     = el('evalBarWhite');
+  const verdict = el('evalVerdict');
+  if (!wrap) return;
+
+  let scoreText = '?';
+  let pct = 50;
+  let txt = 'Оцінку завантажити не вдалось';
+
+  if (result === '1-0')   { scoreText = '+↑'; pct = 80; txt = '<strong>Білі виграли</strong> цю партію'; }
+  if (result === '0-1')   { scoreText = '-↑'; pct = 20; txt = '<strong>Чорні виграли</strong> цю партію'; }
+  if (result === '1/2-1/2') { scoreText = '½'; pct = 50; txt = '<strong>Нічия</strong>'; }
+
+  if (score)   score.textContent = scoreText;
+  if (bar)     bar.style.width   = pct + '%';
+  if (verdict) verdict.innerHTML = txt;
+  if (wrap)    wrap.classList.add('show');
+}
+
 function renderExplainDots() {
   const trap   = ALL_TRAPS[currentTrap];
   const total  = (trap.allMoves || []).length;
@@ -4422,6 +4789,7 @@ function renderExplainDots() {
 
 function skipToPhase2() {
   explainPaused = true;
+  if (explainTimer) { clearTimeout(explainTimer); explainTimer = null; }
   enterPhase(2);
 }
 
