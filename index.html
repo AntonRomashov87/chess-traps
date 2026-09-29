@@ -128,7 +128,7 @@
   <!-- ── ПРОГРЕС-БАР ── -->
   <div class="progress-wrap">
     <button class="nav-btn" id="prevBtn" onclick="prevTrap()" disabled title="Попередня">‹</button>
-    <span class="trap-counter" id="trapCounter">1 / 25</span>
+    <span class="trap-counter" id="trapCounter">1 / 80</span>
     <div class="progress-bar">
       <div class="progress-fill" id="progressFill" style="width:0%"></div>
     </div>
@@ -138,8 +138,22 @@
   </div>
 
 
-  <!-- ── ГОЛОВНА СІТКА ── -->
-  <div class="app-main">
+  <!-- ══ ЕКРАН ВИБОРУ ПАСТКИ (ПЛИТКИ) ══ -->
+  <div class="traps-grid-screen" id="trapsGridScreen">
+    <div class="traps-grid-header">
+      <div class="traps-grid-title">Оберіть пастку для вивчення</div>
+      <div class="traps-grid-stats" id="trapsGridStats">0 / 80 вивчено</div>
+    </div>
+    <div class="traps-grid" id="trapsGrid"></div>
+  </div>
+
+  <!-- ══ ЕКРАН НАВЧАННЯ (ДОШКА + САЙДБАР) ══ -->
+  <div class="app-main" id="appMain" style="display:none">
+
+    <!-- КНОПКА НАЗАД до сітки -->
+    <button class="back-to-grid-btn" onclick="showGridScreen()" title="До списку пасток">
+      ← До пасток
+    </button>
 
     <!-- ЛІВА КОЛОНКА: ДОШКА -->
     <div class="board-panel">
@@ -177,46 +191,29 @@
       </div>
     </div><!-- /board-panel -->
 
-
-    <!-- ПРАВА КОЛОНКА: САЙДБАР (десктоп) -->
+    <!-- ПРАВА КОЛОНКА: САЙДБАР -->
     <div class="sidebar">
-
-      <!-- Про дебют -->
       <div class="info-card">
         <div class="card-title" id="descTitle">Про дебют</div>
         <div class="ornament">✦ ✦ ✦</div>
         <div class="card-desc" id="trapDesc">...</div>
       </div>
-
-      <!-- Ініціатива сторін -->
       <div class="info-card">
         <div class="card-title" id="initTitle">Ініціатива сторін</div>
         <div class="initiatives">
           <div class="init-block">
-            <div class="init-label">
-              <span class="init-dot white"></span>
-              <span id="whiteLabel">Білі</span>
-            </div>
+            <div class="init-label"><span class="init-dot white"></span><span id="whiteLabel">Білі</span></div>
             <ul id="whiteInit"></ul>
           </div>
           <div class="init-block">
-            <div class="init-label">
-              <span class="init-dot black"></span>
-              <span id="blackLabel">Чорні</span>
-            </div>
+            <div class="init-label"><span class="init-dot black"></span><span id="blackLabel">Чорні</span></div>
             <ul id="blackInit"></ul>
           </div>
         </div>
       </div>
-
-      <!-- Кнопка тренера -->
       <div id="teacherPanelBtn" style="display:none">
-        <button class="teacher-open-btn" onclick="openTeacherPanel()">
-          📥 Додати пастку (PGN)
-        </button>
+        <button class="teacher-open-btn" onclick="openTeacherPanel()">📥 Додати пастку (PGN)</button>
       </div>
-
-      <!-- Картка питання (десктоп) -->
       <div class="question-card" id="qCardDesktop">
         <div class="phase-tabs" id="phaseTabsDesktop"></div>
         <div class="q-label" id="qLabel">ФАЗА 1</div>
@@ -227,22 +224,16 @@
           <button class="btn btn-primary"   id="hintBtn" onclick="showHint()">💡 Підказка</button>
           <button class="btn btn-secondary" id="nextBtn" onclick="nextStep()" disabled>Далі →</button>
         </div>
-        <button class="btn-skip-p1" id="skipP1Btn" onclick="skipToPhase2()" style="display:none">
-          Вже знаю → Вправа
-        </button>
+        <button class="btn-skip-p1" id="skipP1Btn" onclick="skipToPhase2()" style="display:none">Вже знаю → Вправа</button>
         <button class="btn-ghost" onclick="skipTrap()">Пропустити пастку</button>
       </div>
-
-      <!-- Екран завершення (десктоп) -->
       <div class="completion" id="compDesktop"></div>
-
     </div><!-- /sidebar -->
 
   </div><!-- /app-main -->
 
-
-  <!-- Інфо-картки на мобільному (під дошкою) -->
-  <div class="mobile-info" id="mobileInfo">
+  <!-- Інфо-картки на мобільному -->
+  <div class="mobile-info" id="mobileInfo" style="display:none">
     <div class="info-card">
       <div class="card-title">Про дебют</div>
       <div class="card-desc" id="trapDescM">...</div>
