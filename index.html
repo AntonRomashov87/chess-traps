@@ -296,7 +296,7 @@ header {
   padding: 16px 14px 80px;
   display: grid;
   grid-template-columns: 1fr var(--sidebar-w);
-  gap: 18px;
+  gap: 14px;
   align-items: start;
 }
 
@@ -795,24 +795,38 @@ header {
 .mobile-info { display: none; flex-direction: column; gap: 12px; padding: 0 10px 20px; }
 
 /* ── ПЛАНШЕТ (до 900px) ──────────────────────── */
-@media (max-width: 900px) {
-  :root { --sidebar-w: 300px; }
-}
 
 /* ── МАЛИЙ ПЛАНШЕТ (до 720px) ───────────────── */
-@media (max-width: 720px) {
+/* ── ПЛАНШЕТ — sidebar стає вузьким ─────────── */
+@media (max-width: 1100px) {
+  :root { --sidebar-w: 320px; }
+}
+@media (max-width: 900px) {
+  :root { --sidebar-w: 280px; }
+  .info-card { padding: 10px; }
+}
+@media (max-width: 760px) {
+  :root { --sidebar-w: 220px; }
+  .trap-name { font-size: 18px; }
+  .info-card { padding: 8px; }
+  .card-desc { font-size: 11px; }
+  .card-title { font-size: 10px; }
+  .init-block ul li { font-size: 11px; }
+}
+
+/* ── МОБІЛЬНИЙ — sidebar іде вниз ───────────── */
+@media (max-width: 600px) {
   .app-main {
     grid-template-columns: 1fr;
     padding: 10px 10px 80px;
     gap: 12px;
   }
-  .sidebar         { display: none; }
+  /* sidebar НЕ ховаємо — він іде під дошку */
+  .sidebar         { display: flex; }
   .q-mobile-wrap   { display: block; }
-  .mobile-info     { display: flex; }
+  .mobile-info     { display: none; } /* mobile-info не потрібен бо sidebar видимий */
   #board           { max-width: 100%; }
-  .trap-name       { font-size: 20px; }
-  .sidebar .question-card,
-  .sidebar .completion { display: none !important; }
+  .trap-name       { font-size: 19px; }
 }
 
 /* ── ТЕЛЕФОН (до 480px) ─────────────────────── */
