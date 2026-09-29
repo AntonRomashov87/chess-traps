@@ -1028,24 +1028,7 @@ header {
 ═══════════════════════════════════════════════════════ */
 
 /* ── КНОПКА "НАЗАД" ─────────────────────────────── */
-.back-to-grid-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin: 10px 14px 0;
-  padding: 8px 14px;
-  background: #2a1f10;
-  border: 1px solid var(--muted);
-  border-radius: 6px;
-  color: var(--parchment);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all .2s;
-  -webkit-tap-highlight-color: transparent;
-  grid-column: 1 / -1;
-}
-.back-to-grid-btn:hover { background: var(--gold); color: var(--ink); border-color: var(--gold); }
+/* back-to-grid-btn тепер в progress-wrap — стилі через .nav-btn */
 
 /* ── ЕКРАН СІТКИ ─────────────────────────────────── */
 .traps-grid-screen {
@@ -1358,6 +1341,7 @@ header {
 
   <!-- ── ПРОГРЕС-БАР ── -->
   <div class="progress-wrap">
+    <button class="nav-btn" id="backToGridBtn" onclick="showGridScreen()" title="До сітки пасток">⊞</button>
     <button class="nav-btn" id="prevBtn" onclick="prevTrap()" disabled title="Попередня">‹</button>
     <span class="trap-counter" id="trapCounter">1 / 80</span>
     <div class="progress-bar">
@@ -1380,11 +1364,6 @@ header {
 
   <!-- ══ ЕКРАН НАВЧАННЯ (ДОШКА + САЙДБАР) ══ -->
   <div class="app-main" id="appMain" style="display:none">
-
-    <!-- КНОПКА НАЗАД до сітки -->
-    <button class="back-to-grid-btn" onclick="showGridScreen()" title="До списку пасток">
-      ← До пасток
-    </button>
 
     <!-- ЛІВА КОЛОНКА: ДОШКА -->
     <div class="board-panel">
