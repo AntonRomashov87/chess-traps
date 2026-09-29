@@ -848,13 +848,7 @@ header {
 }
 .award-overlay.show { display: flex; }
 
-/* Канвас феєрверку — позаду всього */
-#fireworksCanvas {
-  position: fixed;
-  inset: 0;
-  z-index: 499;
-  pointer-events: none;
-}
+/* canvas феєрверку стилізується inline через JS */
 
 /* Картка нагороди */
 .award-card {
@@ -1007,4 +1001,229 @@ header {
   .award-stats  { gap: 8px; }
   .award-stat   { padding: 8px 10px; min-width: 60px; }
   .award-stat-num { font-size: 20px; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   СІТКА ПЛИТОК ПАСТОК
+═══════════════════════════════════════════════════════ */
+
+/* ── КНОПКА "НАЗАД" ─────────────────────────────── */
+.back-to-grid-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 10px 14px 0;
+  padding: 8px 14px;
+  background: #2a1f10;
+  border: 1px solid var(--muted);
+  border-radius: 6px;
+  color: var(--parchment);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .2s;
+  -webkit-tap-highlight-color: transparent;
+  grid-column: 1 / -1;
+}
+.back-to-grid-btn:hover { background: var(--gold); color: var(--ink); border-color: var(--gold); }
+
+/* ── ЕКРАН СІТКИ ─────────────────────────────────── */
+.traps-grid-screen {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px 14px 60px;
+}
+
+.traps-grid-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.traps-grid-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--parchment);
+}
+
+.traps-grid-stats {
+  background: var(--gold);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 20px;
+}
+
+/* ── СІТКА ───────────────────────────────────────── */
+.traps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+/* ── ПЛИТКА ──────────────────────────────────────── */
+.trap-tile {
+  position: relative;
+  background: #2a1f10;
+  border: 2px solid #3a2f1a;
+  border-radius: 10px;
+  padding: 12px 8px 10px;
+  cursor: pointer;
+  transition: all .2s;
+  text-align: center;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.trap-tile:hover {
+  border-color: var(--gold);
+  background: #3a2f18;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,.4);
+}
+.trap-tile:active { transform: translateY(0); }
+
+/* Стан: активна (відкрита зараз) */
+.trap-tile.current {
+  border-color: var(--gold);
+  background: #3a2a10;
+  box-shadow: 0 0 0 2px rgba(201,146,42,.3);
+}
+
+/* Стан: ідеально пройдена ⭐⭐⭐ */
+.trap-tile.perfect {
+  background: linear-gradient(145deg, #1e3a10 0%, #2a4a15 100%);
+  border-color: #4caf50;
+}
+.trap-tile.perfect:hover { border-color: #6fcf77; background: #2a4a15; }
+
+/* Стан: пройдена (не ідеально) */
+.trap-tile.done {
+  background: linear-gradient(145deg, #1e3020 0%, #253825 100%);
+  border-color: #2e7d32;
+  opacity: .9;
+}
+
+/* Стан: частково (є прогрес) */
+.trap-tile.partial {
+  border-color: #5d4037;
+  background: #2a2010;
+}
+
+/* Номер пастки */
+.trap-tile-num {
+  font-family: 'Fira Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  margin-bottom: 6px;
+  letter-spacing: 1px;
+}
+.trap-tile.current  .trap-tile-num { color: var(--gold-lt); }
+.trap-tile.perfect  .trap-tile-num { color: #81c784; }
+.trap-tile.done     .trap-tile-num { color: #66bb6a; }
+
+/* Іконка (шахова фігура або символ) */
+.trap-tile-icon {
+  font-size: 26px;
+  line-height: 1;
+  margin-bottom: 6px;
+  display: block;
+  filter: grayscale(.3);
+}
+.trap-tile.perfect .trap-tile-icon { filter: none; }
+
+/* Назва пастки */
+.trap-tile-name {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--parchment);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+.trap-tile.perfect .trap-tile-name { color: #c8e6c9; }
+.trap-tile.done    .trap-tile-name { color: #a5d6a7; }
+
+/* Зірки прогресу */
+.trap-tile-stars {
+  font-size: 10px;
+  margin-top: 5px;
+  display: block;
+  letter-spacing: 1px;
+  min-height: 14px;
+}
+
+/* Бейдж фаз (маленькі крапки) */
+.trap-tile-phases {
+  display: flex;
+  justify-content: center;
+  gap: 3px;
+  margin-top: 5px;
+}
+.trap-tile-phase-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #3a2f1a;
+  border: 1px solid var(--muted);
+  transition: all .2s;
+}
+.trap-tile-phase-dot.done { background: #4caf50; border-color: #4caf50; }
+.trap-tile-phase-dot.perfect { background: var(--gold); border-color: var(--gold); }
+.trap-tile-phase-dot.partial { background: #ff9800; border-color: #ff9800; }
+
+/* Позначка PGN (власна пастка тренера) */
+.trap-tile-pgn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 8px;
+  color: var(--gold);
+  font-weight: 700;
+  letter-spacing: .5px;
+  background: rgba(201,146,42,.15);
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+
+/* Корона для ідеальних */
+.trap-tile-crown {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 14px;
+  line-height: 1;
+  display: none;
+}
+.trap-tile.perfect .trap-tile-crown { display: block; }
+
+/* ── APP-MAIN: позиція кнопки "Назад" ───────────── */
+.app-main { position: relative; }
+
+/* ── МОБІЛЬНА АДАПТАЦІЯ СІТКИ ────────────────────── */
+@media (max-width: 720px) {
+  .traps-grid { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; }
+  .traps-grid-screen { padding: 12px 10px 40px; }
+  .traps-grid-title { font-size: 17px; }
+  .trap-tile-icon { font-size: 22px; }
+  .trap-tile-name { font-size: 9px; }
+}
+
+@media (max-width: 480px) {
+  .traps-grid { grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 6px; }
+  .trap-tile { padding: 10px 6px 8px; border-radius: 8px; }
+  .trap-tile-icon { font-size: 20px; }
+  .trap-tile-num { font-size: 9px; }
+}
+
+@media (max-width: 360px) {
+  .traps-grid { grid-template-columns: repeat(4, 1fr); }
 }
