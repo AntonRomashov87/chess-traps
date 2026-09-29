@@ -114,8 +114,118 @@ function startApp() {
   trapProgress = ALL_TRAPS.map(() => ({ p1: false, p2: false, p3: 0 }));
   loadProgress();
 
-  // Запускаємо
+
+// ── Іконки для плиток за типом відкриття ────────────
+const TRAP_ICONS = [
+  '♞','♝','♜','♛','♚','♟', // шахові фігури
+  '⚔️','🗡️','🏹','🎯','💥','⚡',
+  '🔥','🌪️','💎','👑','🏆','⭐',
+  '🎪','🎭','🎨','🎬','🎲','🎮',
+];
+
+function getTrapIcon(trap, idx) {
+  // За типом дебюту — відповідна фігура
+  const name = (trap.name?.uk || '').toLowerCase();
+  const opening = (trap.opening?.uk || '').toLowerCase();
+  if (opening.includes('італ') || opening.includes('іспан')) return '♗';
+  if (opening.includes('сицил')) return '♞';
+  if (opening.includes('французьк')) return '♜';
+  if (opening.includes('каро')) return '♝';
+  if (opening.includes('піркц') || opening.includes('модерн')) return '♟';
+  if (opening.includes('скандинав')) return '⚔️';
+  if (opening.includes('алехін')) return '♞';
+  if (opening.includes('ферзев') || opening.includes('ферзів')) return '♛';
+  if (opening.includes('король')) return '♔';
+  if (opening.includes('захист короля') || opening.includes('кіз')) return '♔';
+  if (opening.includes('англійськ')) return '🏰';
+  if (opening.includes('реті')) return '🎯';
+  if (opening.includes('польськ') || opening.includes('орангутан')) return '🐒';
+  if (opening.includes('дракон')) return '🐉';
+  if (opening.includes('будапешт')) return '🏛️';
+  if (opening.includes('голланд')) return '🌷';
+  if (opening.includes('бенькоц')) return '⚡';
+  if (opening.includes('грюнфельд')) return '♟';
+  if (opening.includes('слов') || opening.includes('напів')) return '🛡️';
+  if (opening.includes('гамбіт')) return '💥';
+  if (opening.includes('петров')) return '🔱';
+  if (opening.includes('німц')) return '🏹';
+  // За номером — чергуємо
+  const icons = ['♞','♝','♜','♛','♗','♙','⚔️','🎯','💥','⭐','🏆','👑','🔥','⚡','💎','🌟','🎪','🎭','🏰','🐉'];
+  return icons[idx % icons.length];
+}
+
+// ── СІТКА ПЛИТОК ─────────────────────────────────────
+function showGridScreen() {
+  el('trapsGridScreen').style.display = 'block';
+  el('appMain').style.display         = 'none';
+  el('mobileInfo').style.display      = 'none';
+  renderTrapGrid();
+  window.scrollTo(0, 0);
+}
+
+function showTrapScreen() {
+  el('trapsGridScreen').style.display = 'none';
+  el('appMain').style.display         = 'block';
+  window.scrollTo(0, 0);
+}
+
+function renderTrapGrid() {
+  const grid   = el('trapsGrid');
+  const stats  = el('trapsGridStats');
+  if (!grid) return;
+
+  const done    = trapProgress.filter(p => p?.p3 > 0).length;
+  const perfect = trapProgress.filter(p => p?.p3 === 3).length;
+  if (stats) stats.textContent = `${done} / ${ALL_TRAPS.length} вивчено · ${perfect} ідеально`;
+
+  grid.innerHTML = ALL_TRAPS.map((trap, i) => {
+    const p    = trapProgress[i] || {};
+    const icon = getTrapIcon(trap, i);
+
+    // Визначаємо стан плитки
+    let tileClass = 'trap-tile';
+    let stars     = '';
+    if (i === currentTrap) tileClass += ' current';
+    if (p.p3 === 3)        { tileClass += ' perfect'; stars = '⭐⭐⭐'; }
+    else if (p.p3 === 2)   { tileClass += ' done';    stars = '⭐⭐'; }
+    else if (p.p3 === 1)   { tileClass += ' done';    stars = '⭐'; }
+    else if (p.p1 || p.p2) tileClass += ' partial';
+
+    // Три крапки фаз
+    const d1 = p.p1 ? 'done' : '';
+    const d2 = p.p2 ? 'done' : '';
+    const d3 = p.p3 === 3 ? 'perfect' : p.p3 > 0 ? 'done' : '';
+
+    const pgn = trap.custom ? '<span class="trap-tile-pgn">PGN</span>' : '';
+    const crn = p.p3 === 3  ? '<span class="trap-tile-crown">👑</span>' : '';
+
+    const name = (trap.name?.uk || trap.name || '').replace(/Пастка\s*/i, '').trim();
+
+    return `<div class="${tileClass}" onclick="openTrap(${i})" title="${trap.name?.uk || ''}">
+      ${crn}${pgn}
+      <div class="trap-tile-num">#${i + 1}</div>
+      <span class="trap-tile-icon">${icon}</span>
+      <div class="trap-tile-name">${name}</div>
+      <span class="trap-tile-stars">${stars}</span>
+      <div class="trap-tile-phases">
+        <div class="trap-tile-phase-dot ${d1}" title="Пояснення"></div>
+        <div class="trap-tile-phase-dot ${d2}" title="Вправа"></div>
+        <div class="trap-tile-phase-dot ${d3}" title="Тест"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openTrap(idx) {
+  currentTrap  = idx;
+  currentPhase = 1;
+  showTrapScreen();
   loadTrap();
+}
+
+// Запускаємо
+  loadTrap();
+  showGridScreen();   // починаємо з сітки
   renderMenu();
   renderTeacherList();
 }
@@ -336,11 +446,11 @@ function renderMenu() {
 }
 
 function jumpToTrap(i) {
-  currentTrap = i;
+  currentTrap  = i;
   currentPhase = 1;
-  loadTrap();
   closeMenu();
-  window.scrollTo(0, 0);
+  showTrapScreen();
+  loadTrap();
 }
 
 function prevTrap() {
