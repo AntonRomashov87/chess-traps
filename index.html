@@ -933,6 +933,66 @@ header {
 }
 .eval-spinner.show { display: block; }
 
+
+/* ═══════════════════════════════════════════════════════
+   РЕДАКТОР ПАСТОК (ТРЕНЕР)
+═══════════════════════════════════════════════════════ */
+.editor-tabs {
+  display: flex; gap: 6px; margin-bottom: 16px;
+  border-bottom: 2px solid var(--border); padding-bottom: 10px;
+}
+.editor-tab {
+  padding: 7px 14px; border-radius: 6px 6px 0 0;
+  border: 1px solid var(--border); background: #f0e8d5;
+  color: var(--ink); font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all .2s;
+  font-family: 'Inter', sans-serif;
+}
+.editor-tab.active, .editor-tab:hover {
+  background: var(--gold); color: var(--ink); border-color: var(--gold);
+}
+.editor-pane { animation: fadeIn .2s ease; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; } }
+
+.editor-section-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 16px; font-weight: 700; color: var(--ink);
+  margin-bottom: 12px; padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.editor-label {
+  display: block; font-size: 11px; font-weight: 700;
+  color: var(--muted); text-transform: uppercase;
+  letter-spacing: .5px; margin-bottom: 4px; margin-top: 8px;
+}
+.editor-row {
+  display: flex; gap: 10px; align-items: flex-start;
+}
+.editor-col { flex: 1 1 0; min-width: 0; }
+
+/* Список пасток в редакторі */
+.editor-trap-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px; border-bottom: 1px solid #e8dfc8;
+  cursor: pointer; transition: background .15s;
+}
+.editor-trap-item:hover { background: #f5efe0; }
+.editor-trap-item:last-child { border-bottom: none; }
+.editor-trap-num {
+  font-family: 'Fira Mono', monospace; font-size: 11px;
+  color: var(--muted); flex: 0 0 36px;
+}
+.editor-trap-icon { font-size: 20px; flex: 0 0 28px; text-align:center; }
+.editor-trap-name { font-size: 13px; font-weight: 600; color: var(--ink); flex: 1; }
+.editor-trap-edit {
+  font-size: 11px; color: var(--gold); font-weight: 700;
+  padding: 3px 8px; border: 1px solid var(--gold);
+  border-radius: 4px; background: transparent;
+  cursor: pointer; font-family: 'Inter', sans-serif;
+}
+.editor-trap-edit:hover { background: var(--gold); color: var(--ink); }
+.editor-trap-custom { color: var(--gold); font-size: 10px; margin-left:4px; }
+
 /* ═══════════════════════════════════════════════════════
    ФЕЄРВЕРК І ЕКРАН НАГОРОДИ
 ═══════════════════════════════════════════════════════ */
@@ -1381,27 +1441,105 @@ header {
 
   <!-- ── ТРЕНЕРСЬКА МОДАЛКА ── -->
   <div class="teacher-overlay" id="teacherOverlay" onclick="closeTeacherBg(event)">
-    <div class="teacher-modal">
-      <button class="teacher-modal-close" onclick="closeTeacherPanel()">✕</button>
-      <div class="teacher-modal-title">📥 Додати пастку (PGN)</div>
+  <div class="teacher-modal" style="max-width:780px">
+    <button class="teacher-modal-close" onclick="closeTeacherPanel()">✕</button>
 
-      <input class="pgn-field" id="pgnName" placeholder="Назва пастки">
-      <textarea class="pgn-textarea" id="pgnInput"
-        placeholder="Вставте PGN тут...&#10;[Event &quot;Назва&quot;]&#10;[White &quot;Гравець&quot;]&#10;&#10;1. e4 e5 2. Nf3 ..."></textarea>
-      <div class="pgn-2col">
-        <input class="pgn-field" id="pgnWhite" placeholder="Ідея білих">
-        <input class="pgn-field" id="pgnBlack" placeholder="Ідея чорних">
+    <div class="editor-tabs">
+      <button class="editor-tab active" id="etab-edit" onclick="switchEditorTab('edit')">✏️ Редагувати</button>
+      <button class="editor-tab" id="etab-add"  onclick="switchEditorTab('add')">➕ Додати PGN</button>
+      <button class="editor-tab" id="etab-list" onclick="switchEditorTab('list')">📋 Список</button>
+    </div>
+
+    <!-- РЕДАГУВАННЯ -->
+    <div class="editor-pane" id="epane-edit">
+      <div class="editor-section-title">Пастка #<span id="editTrapNum">1</span> — <span id="editTrapNameTitle"></span></div>
+      <div class="editor-row">
+        <div class="editor-col" style="flex:1">
+          <label class="editor-label">Назва (укр.)</label>
+          <input class="pgn-field" id="editName" placeholder="Назва пастки">
+        </div>
+        <div style="flex:0 0 90px">
+          <label class="editor-label">Іконка</label>
+          <input class="pgn-field" id="editIcon" placeholder="🎯" style="font-size:22px;text-align:center">
+        </div>
       </div>
+      <label class="editor-label">Відкриття</label>
+      <input class="pgn-field" id="editOpening" placeholder="Назва дебюту">
+      <label class="editor-label">Опис пастки</label>
+      <textarea class="pgn-textarea" id="editDesc" rows="3" placeholder="Опис..."></textarea>
+      <div class="editor-row">
+        <div class="editor-col">
+          <label class="editor-label">⚪ Ініціатива білих (кожен рядок — пункт)</label>
+          <textarea class="pgn-textarea" id="editWhite" rows="3" placeholder="Перший пункт&#10;Другий пункт&#10;Третій пункт"></textarea>
+        </div>
+        <div class="editor-col">
+          <label class="editor-label">⚫ Ініціатива чорних</label>
+          <textarea class="pgn-textarea" id="editBlack" rows="3" placeholder="Перший пункт&#10;Другий пункт&#10;Третій пункт"></textarea>
+        </div>
+      </div>
+      <label class="editor-label">Ходи варіанту (SAN через пробіл, напр: e4 e5 Nf3 Nc6)</label>
+      <textarea class="pgn-textarea" id="editMoves" rows="3" placeholder="e4 e5 Nf3 Nc6 Bc4 Nd4 Nxe5 Qg5..."></textarea>
+      <div class="pgn-status" id="editMovesStatus"></div>
+      <div class="editor-row" style="margin-top:8px">
+        <div class="editor-col">
+          <label class="editor-label">Грає за</label>
+          <select class="pgn-field" id="editPlayAs">
+            <option value="white">⚪ Білі</option>
+            <option value="black">⚫ Чорні</option>
+          </select>
+        </div>
+        <div class="editor-col">
+          <label class="editor-label">Результат</label>
+          <select class="pgn-field" id="editResult">
+            <option value="1-0">1-0 (білі виграли)</option>
+            <option value="0-1">0-1 (чорні виграли)</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button class="pgn-add-btn" onclick="validateEditMoves()" style="background:#1e5c35;flex:0 0 auto">✓ Перевірити ходи</button>
+        <button class="pgn-add-btn" onclick="saveEditedTrap()" style="flex:1">💾 Зберегти зміни</button>
+      </div>
+      <div class="pgn-status" id="editStatus"></div>
+    </div>
 
+    <!-- ДОДАТИ PGN -->
+    <div class="editor-pane" id="epane-add" style="display:none">
+      <div class="editor-section-title">Додати нову пастку через PGN</div>
+      <input class="pgn-field" id="pgnName" placeholder="Назва пастки (укр.)">
+      <textarea class="pgn-textarea" id="pgnInput" rows="5" placeholder="1. e4 e5 2. Nf3 Nc6..."></textarea>
+      <div class="editor-row">
+        <div class="editor-col">
+          <input class="pgn-field" id="pgnWhite" placeholder="⚪ Ідея білих (через кому)">
+        </div>
+        <div class="editor-col">
+          <input class="pgn-field" id="pgnBlack" placeholder="⚫ Ідея чорних (через кому)">
+        </div>
+      </div>
+      <div class="editor-row">
+        <div class="editor-col">
+          <select class="pgn-field" id="pgnPlayAs">
+            <option value="white">⚪ Грає за білих</option>
+            <option value="black">⚫ Грає за чорних</option>
+          </select>
+        </div>
+        <div class="editor-col" style="flex:0 0 90px">
+          <input class="pgn-field" id="pgnIcon" placeholder="🎯" style="font-size:22px;text-align:center">
+        </div>
+      </div>
       <button class="pgn-add-btn" onclick="addTrapFromPGN()">➕ Додати пастку</button>
       <div class="pgn-status" id="pgnStatus"></div>
+      <div id="teacherList" style="margin-top:10px"></div>
+    </div>
 
-      <div class="teacher-divider">
-        <div class="teacher-list-title">Мої пастки</div>
-        <div class="trap-list" id="teacherTrapList"></div>
-      </div>
+    <!-- СПИСОК -->
+    <div class="editor-pane" id="epane-list" style="display:none">
+      <div class="editor-section-title">Список пасток — клікни щоб редагувати</div>
+      <input class="pgn-field" id="listSearch" oninput="renderEditorList()" placeholder="🔍 Пошук..." style="margin-bottom:8px">
+      <div id="editorTrapList" style="max-height:400px;overflow-y:auto;border:1px solid var(--border);border-radius:6px"></div>
     </div>
   </div>
+</div>
 
 
   <!-- ── ХЕДЕР ── -->
@@ -1451,7 +1589,13 @@ header {
 
     <!-- ЛІВА КОЛОНКА: ДОШКА -->
     <div class="board-panel">
-      <div class="trap-badge" id="trapBadge">ПАСТКА #1</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="trap-badge" id="trapBadge">ПАСТКА #1</div>
+        <button id="editTrapBtn" onclick="openTeacherPanel()"
+          style="display:none;background:var(--gold);border:none;border-radius:4px;
+                 padding:3px 8px;font-size:11px;font-weight:700;cursor:pointer;
+                 color:var(--ink);font-family:Inter,sans-serif">✏️ Редагувати</button>
+      </div>
       <div class="trap-name"    id="trapName">...</div>
       <div class="trap-opening" id="trapOpening">...</div>
 
@@ -3958,6 +4102,8 @@ function startApp() {
   ALL_TRAPS    = [...TRAPS, ...customTraps];
   trapProgress = ALL_TRAPS.map(() => ({ p1: false, p2: false, p3: 0 }));
   loadProgress();
+  loadTrapOverrides();  // накладаємо зміни тренера
+  loadCustomIcons();    // завантажуємо кастомні іконки
 
   // Запускаємо — показуємо сітку плиток
   loadTrap();
@@ -4306,6 +4452,10 @@ function skipTrap() { nextTrap(); }
 function loadTrap() {
   const trap = ALL_TRAPS[currentTrap];
   if (!trap) return;
+
+  // Кнопка редагування — тільки для тренера
+  const editBtn = el('editTrapBtn');
+  if (editBtn) editBtn.style.display = currentUser?.role === 'teacher' ? 'block' : 'none';
 
   const sideIcon = (trap.playAs || 'white') === 'black' ? '⚫' : '⚪';
   const sideText = (trap.playAs || 'white') === 'black'
@@ -5332,6 +5482,275 @@ $(document).ready(function () {
   // Відновлюємо сесію якщо є
   if (tryRestoreSession()) startApp();
 });
+
+
+/* ═══════════════════════════════════════════════════════
+   РЕДАКТОР ПАСТОК ТРЕНЕРА
+═══════════════════════════════════════════════════════ */
+
+// Власні іконки тренера (зберігаються окремо в localStorage)
+const CUSTOM_ICONS_KEY = 'scs_custom_icons';
+let customIcons = {};
+
+function loadCustomIcons() {
+  try { customIcons = JSON.parse(localStorage.getItem(CUSTOM_ICONS_KEY) || '{}'); } catch(e){}
+}
+function saveCustomIcons() {
+  localStorage.setItem(CUSTOM_ICONS_KEY, JSON.stringify(customIcons));
+}
+
+// Перевизначаємо getTrapIcon щоб враховувати кастомні іконки
+const _origGetTrapIcon = getTrapIcon;
+function getTrapIconEx(trap, idx) {
+  const key = `trap_${idx}`;
+  if (customIcons[key]) return customIcons[key];
+  return _origGetTrapIcon(trap, idx);
+}
+
+// ── ВКЛАДКИ РЕДАКТОРА ──────────────────────────────────
+function switchEditorTab(tab) {
+  ['edit','add','list'].forEach(t => {
+    el('etab-' + t)?.classList.toggle('active', t === tab);
+    const pane = el('epane-' + t);
+    if (pane) pane.style.display = t === tab ? 'block' : 'none';
+  });
+  if (tab === 'list') renderEditorList();
+  if (tab === 'edit') loadEditForm(currentTrap);
+}
+
+// ── СПИСОК ПАСТОК У РЕДАКТОРІ ──────────────────────────
+function renderEditorList() {
+  const container = el('editorTrapList');
+  if (!container) return;
+  const q = (el('listSearch')?.value || '').toLowerCase();
+
+  container.innerHTML = ALL_TRAPS.map((trap, i) => {
+    const name = trap.name?.uk || trap.name || '';
+    if (q && !name.toLowerCase().includes(q) && !(i+1).toString().includes(q)) return '';
+    const icon     = getTrapIconEx(trap, i);
+    const isCustom = trap.custom ? '<span class="editor-trap-custom">★ PGN</span>' : '';
+    return `<div class="editor-trap-item" onclick="editTrap(${i})">
+      <span class="editor-trap-num">#${i+1}</span>
+      <span class="editor-trap-icon">${icon}</span>
+      <span class="editor-trap-name">${name}${isCustom}</span>
+      <button class="editor-trap-edit" onclick="event.stopPropagation();editTrap(${i})">Редагувати</button>
+    </div>`;
+  }).join('');
+}
+
+// ── ВІДКРИТИ ПАСТКУ ДЛЯ РЕДАГУВАННЯ ───────────────────
+function editTrap(idx) {
+  switchEditorTab('edit');
+  loadEditForm(idx);
+}
+
+function loadEditForm(idx) {
+  const trap = ALL_TRAPS[idx];
+  if (!trap) return;
+
+  setText('editTrapNum',       idx + 1);
+  setText('editTrapNameTitle', trap.name?.uk || '');
+  setVal('editName',    trap.name?.uk   || '');
+  setVal('editOpening', trap.opening?.uk || '');
+  setVal('editDesc',    trap.desc?.uk    || '');
+  setVal('editIcon',    getTrapIconEx(trap, idx));
+  setVal('editPlayAs',  trap.playAs  || 'white');
+  setVal('editResult',  trap.result  || '1-0');
+
+  // Ініціативи
+  setVal('editWhite', (trap.white?.uk || []).join('\n'));
+  setVal('editBlack', (trap.black?.uk || []).join('\n'));
+
+  // Ходи (allSan через пробіл)
+  setVal('editMoves', (trap.allSan || []).join(' '));
+
+  el('editStatus').textContent = '';
+  el('editMovesStatus').textContent = '';
+
+  // Зберігаємо індекс
+  el('editTrapNum').dataset.idx = idx;
+}
+
+function setVal(id, val) {
+  const e = el(id); if (e) e.value = val || '';
+}
+
+// ── ПЕРЕВІРКА ХОДІВ ────────────────────────────────────
+function validateEditMoves() {
+  const movesStr = (el('editMoves')?.value || '').trim();
+  if (!movesStr) { showEditStatus('⚠ Введіть ходи', 'warn'); return false; }
+
+  const tokens = movesStr.replace(/\d+\./g,'').split(/\s+/).filter(t => t && !/^\d+$/.test(t));
+  const chess  = new Chess();
+  const valid  = [];
+  const san    = [];
+
+  for (const token of tokens) {
+    const clean = token.replace(/[!?+#]/g, '');
+    const mv    = chess.move(clean, { sloppy: true });
+    if (!mv) {
+      showEditMovesStatus(`❌ Невалідний хід: "${token}"`, 'error');
+      return false;
+    }
+    valid.push(mv.from + mv.to + (mv.promotion || ''));
+    san.push(mv.san);
+  }
+
+  showEditMovesStatus(`✅ ${valid.length} ходів валідні: ${san.slice(0,6).join(' ')}${san.length>6?'...':''}`, 'ok');
+  el('editMoves').dataset.uci = JSON.stringify(valid);
+  el('editMoves').dataset.san = JSON.stringify(san);
+  return true;
+}
+
+function showEditStatus(msg, type) {
+  const e = el('editStatus');
+  if (!e) return;
+  e.textContent = msg;
+  e.style.color = type === 'error' ? '#c0392b' : type === 'ok' ? '#1e8c4a' : '#c9922a';
+}
+function showEditMovesStatus(msg, type) {
+  const e = el('editMovesStatus');
+  if (!e) return;
+  e.textContent = msg;
+  e.style.color = type === 'error' ? '#c0392b' : type === 'ok' ? '#1e8c4a' : '#c9922a';
+}
+
+// ── ЗБЕРЕГТИ ЗМІНИ ─────────────────────────────────────
+function saveEditedTrap() {
+  const idxEl = el('editTrapNum');
+  const idx   = parseInt(idxEl?.dataset.idx ?? currentTrap);
+  const trap  = ALL_TRAPS[idx];
+  if (!trap) { showEditStatus('❌ Пастка не знайдена', 'error'); return; }
+
+  // Перевіряємо і парсимо ходи якщо змінились
+  const movesInput = el('editMoves')?.value?.trim() || '';
+  let allMoves = trap.allMoves;
+  let allSan   = trap.allSan;
+  let steps    = trap.steps;
+
+  if (movesInput && movesInput !== (trap.allSan || []).join(' ')) {
+    if (!validateEditMoves()) return;
+    allMoves = JSON.parse(el('editMoves').dataset.uci || '[]');
+    allSan   = JSON.parse(el('editMoves').dataset.san || '[]');
+    // Перебудовуємо steps
+    const playAs = el('editPlayAs')?.value || 'white';
+    steps = buildStepsFromAll(allMoves, allSan, el('editName')?.value || '', playAs);
+  }
+
+  const playAs = el('editPlayAs')?.value || 'white';
+  const white  = (el('editWhite')?.value || '').split('\n').map(s=>s.trim()).filter(Boolean);
+  const black  = (el('editBlack')?.value || '').split('\n').map(s=>s.trim()).filter(Boolean);
+
+  // Оновлюємо пастку
+  trap.name       = { uk: el('editName')?.value    || trap.name?.uk,    en: trap.name?.en    || '' };
+  trap.opening    = { uk: el('editOpening')?.value || trap.opening?.uk, en: trap.opening?.en || '' };
+  trap.desc       = { uk: el('editDesc')?.value    || trap.desc?.uk,    en: trap.desc?.uk    || '' };
+  trap.white      = { uk: white, en: white };
+  trap.black      = { uk: black, en: black };
+  trap.playAs     = playAs;
+  trap.orientation= playAs;
+  trap.result     = el('editResult')?.value || trap.result;
+  trap.allMoves   = allMoves;
+  trap.allSan     = allSan;
+  trap.steps      = steps;
+
+  // Зберігаємо кастомну іконку
+  const icon = el('editIcon')?.value?.trim();
+  if (icon) { customIcons[`trap_${idx}`] = icon; saveCustomIcons(); }
+
+  // Зберігаємо в localStorage
+  saveCustomTrapsToStorage();
+
+  showEditStatus('✅ Зміни збережено!', 'ok');
+  idxEl.textContent = idx + 1;
+  setText('editTrapNameTitle', trap.name.uk);
+
+  // Оновлюємо UI
+  if (currentTrap === idx) loadTrap();
+  renderTrapGrid();
+  renderMenu();
+}
+
+// ── ПОБУДОВА STEPS З ALLMOVES ──────────────────────────
+function buildStepsFromAll(allMoves, allSan, nameUk, playAs) {
+  const steps = [];
+  let pending  = [];
+  const n      = allMoves.length;
+  allMoves.forEach((mv, i) => {
+    const san   = allSan[i] || '';
+    const isW   = (i % 2 === 0);
+    const mine  = (playAs==='white' && isW) || (playAs==='black' && !isW);
+    if (mine) {
+      steps.push({
+        question: { uk: `Хід ${Math.floor(i/2)+1}: ${san}`, en: `Move ${Math.floor(i/2)+1}: ${san}` },
+        move: mv, san,
+        hint: { uk: san, en: san },
+        auto: [...pending]
+      });
+      pending = [];
+    } else {
+      pending.push(mv);
+    }
+  });
+  return steps;
+}
+
+// ── ЗБЕРЕГТИ ВСІ КАСТОМНІ ПАСТКИ ──────────────────────
+function saveCustomTrapsToStorage() {
+  // Зберігаємо тільки кастомні і змінені пастки
+  const changed = ALL_TRAPS.map((t, i) => t.custom ? t : null).filter(Boolean);
+  // Зберігаємо також оверрайди для стандартних пасток
+  const overrides = {};
+  ALL_TRAPS.forEach((t, i) => {
+    if (!t.custom) {
+      // Зберігаємо тільки якщо щось змінилось (є custom icon або інші зміни)
+      if (customIcons[`trap_${i}`] || t._edited) {
+        overrides[i] = {
+          name:     t.name,
+          opening:  t.opening,
+          desc:     t.desc,
+          white:    t.white,
+          black:    t.black,
+          playAs:   t.playAs,
+          result:   t.result,
+          allMoves: t.allMoves,
+          allSan:   t.allSan,
+          steps:    t.steps,
+        };
+      }
+    }
+  });
+  localStorage.setItem('scs_trap_overrides', JSON.stringify(overrides));
+  localStorage.setItem('scs_custom_traps',   JSON.stringify(
+    ALL_TRAPS.filter(t => t.custom)
+  ));
+}
+
+// ── ЗАВАНТАЖЕННЯ OVERRIDES ─────────────────────────────
+function loadTrapOverrides() {
+  try {
+    const ov = JSON.parse(localStorage.getItem('scs_trap_overrides') || '{}');
+    Object.entries(ov).forEach(([i, data]) => {
+      const idx = parseInt(i);
+      if (ALL_TRAPS[idx]) Object.assign(ALL_TRAPS[idx], data, { _edited: true });
+    });
+  } catch(e){}
+}
+
+// ── ВІДКРИВАЄМО РЕДАКТОР З ПОТОЧНОЮ ПАСТКОЮ ───────────
+function openTeacherPanel() {
+  loadCustomIcons();
+  loadEditForm(currentTrap);
+  el('teacherOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+// ── КНОПКА РЕДАГУВАТИ НА BADGE ─────────────────────────
+function editCurrentTrap() {
+  if (currentUser?.role !== 'teacher') return;
+  openTeacherPanel();
+}
+
 </script>
 
 </body>
