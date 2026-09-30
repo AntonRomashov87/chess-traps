@@ -114,6 +114,13 @@ function startApp() {
   trapProgress = ALL_TRAPS.map(() => ({ p1: false, p2: false, p3: 0 }));
   loadProgress();
 
+  // Запускаємо — показуємо сітку плиток
+  loadTrap();
+  showGridScreen();
+  renderMenu();
+  renderTeacherList();
+}
+
 
 // ── Іконки для плиток за типом відкриття ────────────
 const TRAP_ICONS = [
@@ -158,7 +165,10 @@ function getTrapIcon(trap, idx) {
 function showGridScreen() {
   el('trapsGridScreen').style.display = 'block';
   el('appMain').style.display         = 'none';
-  el('mobileInfo').style.display      = 'none';
+  if (el('mobileInfo')) el('mobileInfo').style.display = 'none';
+  // Ховаємо progress-bar (він тільки для екрану навчання)
+  const pw = document.querySelector('.progress-wrap');
+  if (pw) pw.style.display = 'none';
   renderTrapGrid();
   window.scrollTo(0, 0);
 }
@@ -166,6 +176,9 @@ function showGridScreen() {
 function showTrapScreen() {
   el('trapsGridScreen').style.display = 'none';
   el('appMain').style.display         = 'block';
+  // Показуємо progress-bar
+  const pw = document.querySelector('.progress-wrap');
+  if (pw) pw.style.display = '';
   window.scrollTo(0, 0);
 }
 
@@ -201,7 +214,7 @@ function renderTrapGrid() {
 
     const name = (trap.name?.uk || trap.name || '').replace(/Пастка\s*/i, '').trim();
 
-    return `<div class="${tileClass}" onclick="openTrap(${i})" title="${trap.name?.uk || ''}">
+    return `<div class="${tileClass}" onclick="openTrap(${i})">
       ${crn}${pgn}
       <div class="trap-tile-num">#${i + 1}</div>
       <span class="trap-tile-icon">${icon}</span>
@@ -221,13 +234,6 @@ function openTrap(idx) {
   currentPhase = 1;
   showTrapScreen();
   loadTrap();
-}
-
-// Запускаємо
-  loadTrap();
-  showGridScreen();   // починаємо з сітки
-  renderMenu();
-  renderTeacherList();
 }
 
 /* ───────────────────────────────────────────────────────
@@ -568,9 +574,13 @@ function onTabClick(n) {
 }
 
 /* ── ФАЗА 1: ПОЯСНЕННЯ ──────────────────────── */
-// Відтворюємо ВСІ ходи партії (allMoves) — не тільки кроки гравця
+// Відтворюємо ВСІ ходи партії (allMoves)
 
-let explainPaused = false;
+let explainPaused  = false;
+let explainSpeed   = 1;      // коефіцієнт швидкості
+const SPEEDS       = [0.5, 1, 1.5, 2, 3];
+const SPEED_LABELS = ['🐢 ×½','🐢 ×1','🐇 ×1.5','🐇 ×2','⚡ ×3'];
+let explainTimer   = null;   // поточний setTimeout
 
 function startExplain() {
   setText2('qLabel', 'ФАЗА 1 — ПОЯСНЕННЯ');
@@ -579,9 +589,115 @@ function startExplain() {
   disableBtn('hintBtn', true);
   showSkipBtn(true);
   explainPaused = false;
-  phaseStep = 0;
+  explainSpeed  = 1;
+  phaseStep     = 0;
+  updateSpeedBtn();
+  showExplainControls(true);
+  hideEval();
   renderExplainDots();
-  setTimeout(animAllMoves, 800);
+  if (explainTimer) clearTimeout(explainTimer);
+  explainTimer = setTimeout(animAllMoves, 600);
+}
+
+// Показуємо/ховаємо контролі
+function showExplainControls(show) {
+  const e = el('explainControls');
+  if (e) e.style.display = show ? 'flex' : 'none';
+}
+
+// Оновлюємо кнопку швидкості
+function updateSpeedBtn() {
+  const idx   = SPEEDS.indexOf(explainSpeed);
+  const label = SPEED_LABELS[idx] || '🐢 ×1';
+  ['ctrlSpeed'].forEach(id => {
+    const e = el(id); if (e) e.textContent = label;
+  });
+  document.querySelectorAll('.ctrl-speed').forEach(e => e.textContent = label);
+}
+
+// Оновлюємо лічильник ходів
+function updateCtrlCounter() {
+  const trap  = ALL_TRAPS[currentTrap];
+  const total = (trap?.allMoves || []).length;
+  const e = el('ctrlCounter');
+  if (e) e.textContent = `${phaseStep} / ${total}`;
+}
+
+// Цикл швидкостей
+function cycleSpeed() {
+  const idx    = SPEEDS.indexOf(explainSpeed);
+  explainSpeed = SPEEDS[(idx + 1) % SPEEDS.length];
+  updateSpeedBtn();
+}
+
+// Пауза / Старт
+function explainToggle() {
+  if (explainPaused) {
+    explainPaused = false;
+    updatePlayBtn(false);
+    if (explainTimer) clearTimeout(explainTimer);
+    explainTimer = setTimeout(animAllMoves, 50);
+  } else {
+    explainPaused = true;
+    if (explainTimer) clearTimeout(explainTimer);
+    updatePlayBtn(true);
+  }
+}
+
+function updatePlayBtn(isPaused) {
+  const icon = isPaused ? '▶' : '⏸';
+  const e = el('ctrlPlay');
+  if (e) e.textContent = icon;
+}
+
+// Перемотка на конкретний хід
+function explainGoTo(step) {
+  if (explainTimer) clearTimeout(explainTimer);
+  explainPaused = true;
+  updatePlayBtn(true);
+
+  const trap = ALL_TRAPS[currentTrap];
+  const allMoves = trap.allMoves || [];
+  const allSan   = trap.allSan   || [];
+
+  // Перевідтворюємо позицію до потрібного ходу
+  game = new Chess(trap.startFen);
+  for (let i = 0; i < step && i < allMoves.length; i++) {
+    const u = allMoves[i];
+    game.move({ from: u.substring(0,2), to: u.substring(2,4), promotion: u[4] || 'q' });
+  }
+  board.position(game.fen());
+  updateMoveLine();
+  phaseStep = step;
+  if (step > 0 && step <= allMoves.length) {
+    const uci  = allMoves[step - 1];
+    const san  = allSan[step - 1] || '';
+    const isW  = ((step-1) % 2 === 0);
+    const pa   = trap.playAs || 'white';
+    const mine = (pa==='white' && isW) || (pa==='black' && !isW);
+    const side = mine ? '🎯 Твій хід' : (isW ? '⚪ Білі' : '⚫ Чорні');
+    const num  = Math.floor((step-1)/2) + 1;
+    const dots = isW ? '.' : '...';
+    setText2('qText', `${side}: ${num}${dots} ${san.replace(/[!?]/g,'')}`);
+    if (uci) hlSq(uci.substring(0,2), uci.substring(2,4));
+  } else if (step === 0) {
+    setText2('qText', '👁 Початкова позиція');
+  }
+  renderExplainDots();
+  updateCtrlCounter();
+  if (step >= allMoves.length) onExplainFinished();
+}
+
+function explainStepBack() {
+  explainGoTo(Math.max(0, phaseStep - 1));
+}
+function explainStepFwd() {
+  const trap = ALL_TRAPS[currentTrap];
+  explainGoTo(Math.min((trap.allMoves||[]).length, phaseStep + 1));
+}
+function explainGoToEnd() {
+  const trap = ALL_TRAPS[currentTrap];
+  explainGoTo((trap.allMoves||[]).length);
 }
 
 function animAllMoves() {
@@ -593,17 +709,7 @@ function animAllMoves() {
   const playAs   = trap.playAs   || 'white';
 
   if (phaseStep >= allMoves.length) {
-    // Всі ходи зіграно
-    trapProgress[currentTrap].p1 = true;
-    saveProgress();
-    renderMenu();
-    updatePhaseTabs();
-    setText2('qText', '✅ Пастку переглянуто! Тепер спробуй сам.');
-    disableBtn('nextBtn', false);
-    setLabel('nextBtn',  'До вправи →');
-    setLabel('nextBtnM', 'До вправи →');
-    showSkipBtn(false);
-    renderExplainDots();
+    onExplainFinished();
     return;
   }
 
@@ -636,13 +742,134 @@ function animAllMoves() {
   }
 
   phaseStep++;
+  updateCtrlCounter();
 
-  // Мій хід — довша пауза, щоб встигнути прочитати
-  const delay = isMyMove ? 1500 : 950;
-  setTimeout(animAllMoves, delay);
+  // Мій хід — довша пауза; всі паузи діляться на швидкість
+  const base  = isMyMove ? 1400 : 900;
+  const delay = Math.round(base / explainSpeed);
+  if (explainTimer) clearTimeout(explainTimer);
+  explainTimer = setTimeout(animAllMoves, delay);
 }
 
 // Крапки-прогрес: показуємо тільки ходи ГРАВЦЯ
+// ── ЗАВЕРШЕННЯ ПОЯСНЕННЯ + STOCKFISH ────────────
+function onExplainFinished() {
+  trapProgress[currentTrap].p1 = true;
+  saveProgress();
+  renderMenu();
+  updatePhaseTabs();
+  setText2('qText', '✅ Пастку переглянуто! Тепер спробуй сам.');
+  disableBtn('nextBtn', false);
+  setLabel('nextBtn',  'До вправи →');
+  setLabel('nextBtnM', 'До вправи →');
+  showSkipBtn(false);
+  renderExplainDots();
+  updateCtrlCounter();
+  updatePlayBtn(true);
+  // Запускаємо Stockfish аналіз
+  runStockfishEval();
+}
+
+function hideEval() {
+  const w = el('evalBarWrap'); if (w) w.classList.remove('show');
+  const s = el('evalSpinner'); if (s) s.classList.remove('show');
+}
+
+// ── STOCKFISH через Lichess Cloud Eval API ────────
+function runStockfishEval() {
+  const fen = game.fen();
+  const spinner = el('evalSpinner');
+  const wrap    = el('evalBarWrap');
+  if (spinner) spinner.classList.add('show');
+  if (wrap)    wrap.classList.remove('show');
+
+  // Lichess безкоштовний cloud eval API
+  fetch(`https://lichess.org/api/cloud-eval?fen=${encodeURIComponent(fen)}&multiPv=1`)
+    .then(r => r.json())
+    .then(data => {
+      if (spinner) spinner.classList.remove('show');
+      const pvs = data.pvs || [];
+      if (!pvs.length) { showEvalFallback(); return; }
+      const cp = pvs[0].cp;
+      const mate = pvs[0].mate;
+      showEval(fen, cp, mate);
+    })
+    .catch(() => {
+      if (spinner) spinner.classList.remove('show');
+      showEvalFallback();
+    });
+}
+
+function showEval(fen, cp, mate) {
+  const wrap    = el('evalBarWrap');
+  const score   = el('evalScore');
+  const bar     = el('evalBarWhite');
+  const verdict = el('evalVerdict');
+  if (!wrap) return;
+
+  let scoreText = '';
+  let whitePercent = 50;
+  let verdictText  = '';
+
+  if (mate !== undefined && mate !== null) {
+    // Мат
+    const side = mate > 0 ? 'Білі' : 'Чорні';
+    scoreText   = `М${Math.abs(mate)}`;
+    whitePercent = mate > 0 ? 95 : 5;
+    verdictText  = `<strong>${side} ставлять мат через ${Math.abs(mate)} ходів!</strong>`;
+  } else if (cp !== undefined) {
+    // Сантипішаки → пішаки
+    const pawns  = cp / 100;
+    const absPawns = Math.abs(pawns);
+    scoreText = (pawns >= 0 ? '+' : '') + pawns.toFixed(2);
+
+    // Відсоток для бар (логарифмічна шкала)
+    const sigmoid = x => 1 / (1 + Math.exp(-x / 250));
+    whitePercent = Math.round(sigmoid(cp) * 100);
+
+    // Вердикт
+    const trap = ALL_TRAPS[currentTrap];
+    const playAs = trap?.playAs || 'white';
+    const winner = cp > 0 ? 'Білі' : 'Чорні';
+    const loser  = cp > 0 ? 'Чорні' : 'Білі';
+
+    if (absPawns < 0.3)      verdictText = '<strong>Рівна позиція</strong> — пастка не спрацювала?';
+    else if (absPawns < 1.0) verdictText = `<strong>${winner} трохи краще</strong> (${scoreText} пішака)`;
+    else if (absPawns < 2.0) verdictText = `<strong>${winner} мають перевагу</strong> — пастка спрацювала!`;
+    else if (absPawns < 3.5) verdictText = `<strong>${winner} виграють</strong> — матеріальна перевага!`;
+    else                      verdictText = `<strong>${winner} виграють</strong> — позиція безнадійна для ${loser}!`;
+  }
+
+  if (score)   score.textContent = scoreText;
+  if (bar)     bar.style.width   = whitePercent + '%';
+  if (verdict) verdict.innerHTML = verdictText;
+  if (wrap)    wrap.classList.add('show');
+}
+
+function showEvalFallback() {
+  // Якщо API недоступний — показуємо базову інформацію
+  const trap   = ALL_TRAPS[currentTrap];
+  const result = trap?.result || '*';
+  const wrap    = el('evalBarWrap');
+  const score   = el('evalScore');
+  const bar     = el('evalBarWhite');
+  const verdict = el('evalVerdict');
+  if (!wrap) return;
+
+  let scoreText = '?';
+  let pct = 50;
+  let txt = 'Оцінку завантажити не вдалось';
+
+  if (result === '1-0')   { scoreText = '+↑'; pct = 80; txt = '<strong>Білі виграли</strong> цю партію'; }
+  if (result === '0-1')   { scoreText = '-↑'; pct = 20; txt = '<strong>Чорні виграли</strong> цю партію'; }
+  if (result === '1/2-1/2') { scoreText = '½'; pct = 50; txt = '<strong>Нічия</strong>'; }
+
+  if (score)   score.textContent = scoreText;
+  if (bar)     bar.style.width   = pct + '%';
+  if (verdict) verdict.innerHTML = txt;
+  if (wrap)    wrap.classList.add('show');
+}
+
 function renderExplainDots() {
   const trap   = ALL_TRAPS[currentTrap];
   const total  = (trap.allMoves || []).length;
@@ -668,6 +895,7 @@ function renderExplainDots() {
 
 function skipToPhase2() {
   explainPaused = true;
+  if (explainTimer) { clearTimeout(explainTimer); explainTimer = null; }
   enterPhase(2);
 }
 
