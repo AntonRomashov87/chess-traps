@@ -270,159 +270,101 @@ header {
 /* ═══════════════════════════════════════════════════════
    ГОЛОВНИЙ LAYOUT
 ═══════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════
+   LAYOUT: ПК / ПЛАНШЕТ / МОБІЛЬНИЙ
+   ПК       (>900px):  дошка + sidebar 340px ПРАВОРУЧ
+   Планшет  (600-900): дошка + sidebar 240px ПРАВОРУЧ
+   Мобільний(<600px):  одна колонка, дошка на всю ширину
+══════════════════════════════════════════════════════ */
+
+/* ── ПК (за замовчуванням, >900px) ── */
 .app-main {
   max-width: 1200px;
   margin: 0 auto;
   padding: 16px 14px 80px;
-  display: grid;
-  grid-template-columns: 1fr var(--sidebar-w);
-  gap: 18px;
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
   align-items: start;
 }
-
-/* ═══════════════════════════════════════════════════════
-   ПАНЕЛЬ ДОШКИ
-═══════════════════════════════════════════════════════ */
 .board-panel {
+  flex: 1 1 auto;
+  min-width: 0;
   background: var(--parchment);
   border: 2px solid var(--border);
   border-radius: 8px;
   padding: 16px 16px 14px;
 }
-.trap-badge {
-  display: inline-block;
-  background: var(--ink);
-  color: var(--gold);
-  font-family: 'Fira Mono', monospace;
-  font-size: 10px;
-  font-weight: 500;
-  padding: 3px 10px;
-  border-radius: 2px;
-  letter-spacing: 1.5px;
-  margin-bottom: 5px;
-}
-.trap-name {
-  font-family: 'Playfair Display', serif;
-  font-size: 24px;
-  font-weight: 900;
-  line-height: 1.15;
-  color: var(--ink);
-  margin-bottom: 3px;
-}
-.trap-opening { font-size: 11px; color: var(--muted); font-weight: 500; margin-bottom: 14px; }
-#board { width: 100%; max-width: 520px; margin: 0 auto; touch-action: none; }
-
-/* ── ХІД ГРИ ────────────────────────────────── */
-.move-history {
-  margin-top: 12px;
-  padding: 8px 10px;
-  background: var(--cream);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-}
-.move-history-label {
-  font-size: 9px;
-  font-weight: 600;
-  color: var(--muted);
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  margin-bottom: 3px;
-}
-.moves-line {
-  font-family: 'Fira Mono', monospace;
-  font-size: 12px;
-  color: var(--ink);
-  line-height: 1.6;
-  word-break: break-all;
-}
-.move-num { color: var(--muted); }
-
-/* ═══════════════════════════════════════════════════════
-   ПРАВА КОЛОНКА (SIDEBAR)
-═══════════════════════════════════════════════════════ */
-.sidebar { display: flex; flex-direction: column; gap: 14px; }
-
-/* ── ІНФОРМАЦІЙНА КАРТКА ────────────────────── */
-.info-card {
-  background: var(--parchment);
-  border: 2px solid var(--border);
-  border-radius: 8px;
-  padding: 14px;
-}
-.card-title {
-  font-family: 'Playfair Display', serif;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: .5px;
-  color: var(--ink);
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 7px;
-  margin-bottom: 9px;
-  text-transform: uppercase;
-}
-.card-desc { font-size: 13px; line-height: 1.55; color: #3a2f1a; }
-.ornament { text-align: center; color: var(--gold); font-size: 14px; opacity: .5; margin: 4px 0; letter-spacing: 6px; }
-.initiatives { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.init-block { font-size: 12px; line-height: 1.5; }
-.init-label {
+.sidebar {
+  flex: 0 0 340px;
+  width: 340px;
   display: flex;
-  align-items: center;
-  gap: 5px;
-  font-weight: 700;
-  font-size: 11px;
-  letter-spacing: .5px;
-  margin-bottom: 4px;
-  text-transform: uppercase;
+  flex-direction: column;
+  gap: 14px;
 }
-.init-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-.init-dot.white { background: #f0d9b5; border: 2px solid var(--ink); }
-.init-dot.black { background: var(--ink); }
-.init-block ul { list-style: none; }
-.init-block ul li::before { content: "• "; color: var(--gold); }
-.init-block ul li { color: #3a2f1a; }
 
-/* ── КНОПКА ТРЕНЕРА ─────────────────────────── */
-.teacher-open-btn {
+/* ── ШАХОВА ДОШКА ── */
+#board {
   width: 100%;
-  padding: 11px;
-  background: var(--gold);
-  color: var(--ink);
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all .2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
+  max-width: 520px;
+  margin: 0 auto;
+  touch-action: none;
 }
-.teacher-open-btn:hover { background: var(--gold-lt); }
 
-/* ═══════════════════════════════════════════════════════
-   ВКЛАДКИ ФАЗ
-═══════════════════════════════════════════════════════ */
-.phase-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
-.phase-tab {
-  flex: 1;
-  padding: 8px 4px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  text-align: center;
-  border: 2px solid #3a2f1a;
-  color: var(--muted);
-  background: transparent;
-  cursor: pointer;
-  transition: all .2s;
-  line-height: 1.3;
-  -webkit-tap-highlight-color: transparent;
+/* ── ПЛАНШЕТ (600px – 900px) ── */
+@media (max-width: 900px) and (min-width: 601px) {
+  .app-main {
+    flex-direction: row;
+    gap: 12px;
+    padding: 12px 10px 80px;
+  }
+  .board-panel { flex: 1 1 auto; min-width: 0; }
+  .sidebar     { flex: 0 0 240px; width: 240px; }
+  .card-title  { font-size: 11px; }
+  .card-desc   { font-size: 11px; }
+  .info-card   { padding: 10px; }
+  /* Картка питання — планшет */
+  .q-mobile-wrap               { display: none; }
+  .sidebar .question-card      { display: block; }
+  .sidebar .completion         { display: block; }
+  .mobile-info                 { display: none; }
 }
-.phase-tab.active { border-color: var(--gold);  color: var(--gold);  background: rgba(201,146,42,.1); }
-.phase-tab.done   { border-color: var(--green); color: #4caf50;      background: rgba(30,92,53,.12); }
-.phase-tab .tab-icon  { font-size: 15px; display: block; }
-.phase-tab .tab-label { font-size: 9px; opacity: .8; }
+
+/* ── МОБІЛЬНИЙ (≤600px) ── */
+@media (max-width: 600px) {
+  .app-main {
+    flex-direction: column;
+    gap: 10px;
+    padding: 8px 8px 80px;
+  }
+  .board-panel {
+    width: 100%;
+    flex: none;
+  }
+  .sidebar {
+    width: 100%;
+    flex: none;
+  }
+  #board { max-width: 100%; }
+  /* Картка питання — мобільний: q-mobile-wrap над дошкою */
+  .q-mobile-wrap               { display: block; }
+  .sidebar .question-card      { display: none !important; }
+  .sidebar .completion         { display: none !important; }
+  .sidebar .info-card          { display: none !important; }
+  #teacherPanelBtn             { display: none !important; }
+  /* mobile-info показується нижче */
+  .mobile-info { display: flex !important; flex-direction: column; gap: 10px; }
+  .trap-name   { font-size: 18px; }
+  .trap-badge  { font-size: 9px; }
+}
+
+/* ── ПК: q-mobile-wrap схована, sidebar картка видима ── */
+@media (min-width: 601px) {
+  .q-mobile-wrap          { display: none; }
+  .sidebar .question-card { display: block; }
+  .sidebar .completion    { display: block; }
+  .mobile-info            { display: none; }
+}
 
 /* ═══════════════════════════════════════════════════════
    КАРТКА ПИТАННЯ
@@ -772,28 +714,14 @@ header {
 .q-mobile-wrap { display: none; margin-bottom: 14px; }
 
 /* Блок інфо внизу на мобільному */
-.mobile-info { display: none; flex-direction: column; gap: 12px; padding: 0 10px 20px; }
+
 
 /* ── ПЛАНШЕТ (до 900px) ──────────────────────── */
-@media (max-width: 900px) {
-  :root { --sidebar-w: 300px; }
-}
 
 /* ── МАЛИЙ ПЛАНШЕТ (до 720px) ───────────────── */
-@media (max-width: 720px) {
-  .app-main {
-    grid-template-columns: 1fr;
-    padding: 10px 10px 80px;
-    gap: 12px;
-  }
-  .sidebar         { display: none; }
-  .q-mobile-wrap   { display: block; }
-  .mobile-info     { display: flex; }
-  #board           { max-width: 100%; }
-  .trap-name       { font-size: 20px; }
-  .sidebar .question-card,
-  .sidebar .completion { display: none !important; }
-}
+/* sidebar-w задається безпосередньо в grid-template-columns */
+
+
 
 /* ── ТЕЛЕФОН (до 480px) ─────────────────────── */
 @media (max-width: 480px) {
@@ -828,8 +756,121 @@ header {
 /* ── ГОРИЗОНТАЛЬНА ОРІЄНТАЦІЯ ───────────────── */
 @media (max-width: 720px) and (orientation: landscape) {
   .app-main { padding: 6px 8px 60px; }
-  #board    { max-width: 320px; margin: 0 auto; }
+  }
+
+/* ═══════════════════════════════════════════════════════
+   КОНТРОЛІ ВІДТВОРЕННЯ (ФАЗА 1)
+═══════════════════════════════════════════════════════ */
+.explain-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  margin-bottom: 2px;
+  flex-wrap: wrap;
+  padding: 6px 0;
 }
+.ctrl-btn {
+  background: #2a1f10;
+  border: 1px solid var(--muted);
+  color: var(--parchment);
+  padding: 6px 10px;
+  border-radius: 5px;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  min-height: 36px;
+  min-width: 36px;
+  transition: all .15s;
+  -webkit-tap-highlight-color: transparent;
+  display: flex; align-items: center; justify-content: center;
+}
+.ctrl-btn:hover  { background: var(--gold); color: var(--ink); border-color: var(--gold); }
+.ctrl-btn:active { transform: scale(.94); }
+.ctrl-btn.active { background: var(--gold); color: var(--ink); border-color: var(--gold); }
+.ctrl-btn:disabled { opacity: .35; cursor: not-allowed; }
+
+.ctrl-speed {
+  background: #2a1f10;
+  border: 1px solid var(--muted);
+  color: var(--parchment);
+  padding: 5px 8px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 36px;
+  transition: all .15s;
+  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
+}
+.ctrl-speed:hover { border-color: var(--gold); color: var(--gold-lt); }
+
+.ctrl-counter {
+  font-family: 'Fira Mono', monospace;
+  font-size: 12px;
+  color: var(--muted);
+  padding: 0 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── ОЦІНКА STOCKFISH ──────────────────────────────── */
+.eval-bar-wrap {
+  margin-top: 10px;
+  background: #1a1208;
+  border: 1px solid #3a2f1a;
+  border-radius: 6px;
+  overflow: hidden;
+  display: none;
+}
+.eval-bar-wrap.show { display: block; }
+.eval-bar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px 4px;
+}
+.eval-bar-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.eval-bar-score {
+  font-family: 'Fira Mono', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gold-lt);
+}
+.eval-bar {
+  height: 8px;
+  background: #1a1208;
+  position: relative;
+  overflow: hidden;
+}
+.eval-bar-white {
+  height: 100%;
+  background: var(--parchment);
+  transition: width .6s ease;
+  min-width: 4px;
+}
+.eval-verdict {
+  font-size: 11px;
+  color: var(--parchment);
+  padding: 4px 10px 6px;
+  line-height: 1.4;
+}
+.eval-verdict strong { color: var(--gold); }
+.eval-spinner {
+  display: none;
+  padding: 8px 10px;
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+}
+.eval-spinner.show { display: block; }
 
 /* ═══════════════════════════════════════════════════════
    ФЕЄРВЕРК І ЕКРАН НАГОРОДИ
@@ -1008,24 +1049,7 @@ header {
 ═══════════════════════════════════════════════════════ */
 
 /* ── КНОПКА "НАЗАД" ─────────────────────────────── */
-.back-to-grid-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin: 10px 14px 0;
-  padding: 8px 14px;
-  background: #2a1f10;
-  border: 1px solid var(--muted);
-  border-radius: 6px;
-  color: var(--parchment);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all .2s;
-  -webkit-tap-highlight-color: transparent;
-  grid-column: 1 / -1;
-}
-.back-to-grid-btn:hover { background: var(--gold); color: var(--ink); border-color: var(--gold); }
+/* back-to-grid-btn тепер в progress-wrap — стилі через .nav-btn */
 
 /* ── ЕКРАН СІТКИ ─────────────────────────────────── */
 .traps-grid-screen {
@@ -1206,7 +1230,6 @@ header {
 .trap-tile.perfect .trap-tile-crown { display: block; }
 
 /* ── APP-MAIN: позиція кнопки "Назад" ───────────── */
-.app-main { position: relative; }
 
 /* ── МОБІЛЬНА АДАПТАЦІЯ СІТКИ ────────────────────── */
 @media (max-width: 720px) {
