@@ -294,8 +294,8 @@ header {
   max-width: 1200px;
   margin: 0 auto;
   padding: 16px 14px 80px;
-  display: flex !important;
-  flex-direction: row !important;
+  display: flex;
+  flex-direction: row;
   flex-wrap: nowrap;
   gap: 16px;
   align-items: start;
@@ -303,31 +303,53 @@ header {
 .board-panel {
   flex: 1 1 auto;
   min-width: 0;
-  max-width: calc(100% - 350px);
 }
 .sidebar {
-  flex: 0 0 340px !important;
-  width: 340px !important;
+  flex: 0 0 340px;
+  width: 340px;
   min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
+/* Планшет — звужуємо sidebar */
 @media (max-width: 1100px) {
-  .board-panel { max-width: calc(100% - 310px); }
-  .sidebar { flex: 0 0 300px !important; width: 300px !important; }
+  .sidebar { flex-basis: 300px; width: 300px; }
 }
 @media (max-width: 900px) {
-  .board-panel { max-width: calc(100% - 270px); }
-  .sidebar { flex: 0 0 260px !important; width: 260px !important; }
+  .sidebar { flex-basis: 260px; width: 260px; }
 }
+/* Мобільний — ОДНА КОЛОНКА, дошка на всю ширину */
 @media (max-width: 760px) {
-  .board-panel { max-width: calc(100% - 210px); }
-  .sidebar { flex: 0 0 200px !important; width: 200px !important; }
-  .trap-name { font-size: 16px; }
-  .card-desc { font-size: 11px; }
-  .info-card { padding: 8px; }
-  .card-title { font-size: 10px; }
+  .app-main {
+    flex-direction: column;
+    padding: 10px 10px 80px;
+    gap: 12px;
+  }
+  .board-panel {
+    width: 100%;
+    max-width: 100%;
+    flex: none;
+  }
+  .sidebar {
+    width: 100%;
+    flex: none;
+    flex-basis: auto;
+    order: 2; /* sidebar після board-panel */
+  }
+  /* Дошка на всю ширину */
+  #board { max-width: 100%; }
+  /* Показуємо мобільну картку питання (над дошкою) */
+  .q-mobile-wrap { display: block; }
+  /* Ховаємо десктопну картку питання в sidebar (щоб не дублювалась) */
+  .sidebar .question-card { display: none !important; }
+  .sidebar .completion     { display: none !important; }
+  /* Ховаємо sidebar info-карти (вони є в mobile-info нижче) */
+  .sidebar .info-card      { display: none !important; }
+  /* Показуємо mobile-info (інфо-картки) */
+  .mobile-info { display: flex !important; flex-direction: column; gap: 10px; }
+  /* Ховаємо teacherPanelBtn у sidebar на мобільному */
+  #teacherPanelBtn         { display: none !important; }
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -829,20 +851,7 @@ header {
 /* ── МАЛИЙ ПЛАНШЕТ (до 720px) ───────────────── */
 /* sidebar-w задається безпосередньо в grid-template-columns */
 
-/* ── МОБІЛЬНИЙ — колонки йдуть вертикально ──── */
-@media (max-width: 600px) {
-  .app-main {
-    flex-direction: column;
-    padding: 10px 10px 80px;
-    gap: 12px;
-  }
-  .sidebar   { width: 100%; flex: 1 1 auto; }
-  .board-panel { width: 100%; }
-  .q-mobile-wrap { display: block; }
-  .mobile-info   { display: none; }
-  #board         { max-width: 100%; }
-  .trap-name     { font-size: 19px; }
-}
+/* mobile handled by 760px breakpoint */
 
 /* ── ТЕЛЕФОН (до 480px) ─────────────────────── */
 @media (max-width: 480px) {
