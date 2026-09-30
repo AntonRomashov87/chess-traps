@@ -319,6 +319,14 @@ header {
   gap: 14px;
 }
 
+/* ── ШАХОВА ДОШКА ── */
+#board {
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  touch-action: none;
+}
+
 /* ── ПЛАНШЕТ (600px – 900px) ── */
 @media (max-width: 900px) and (min-width: 601px) {
   .app-main {
@@ -353,8 +361,7 @@ header {
     width: 100%;
     flex: none;
   }
-  /* Дошка на всю ширину */
-  #board { max-width: 100% !important; }
+  #board { max-width: 100%; }
   /* Картка питання — мобільний: q-mobile-wrap над дошкою */
   .q-mobile-wrap               { display: block; }
   .sidebar .question-card      { display: none !important; }
@@ -765,8 +772,7 @@ header {
 /* ── ГОРИЗОНТАЛЬНА ОРІЄНТАЦІЯ ───────────────── */
 @media (max-width: 720px) and (orientation: landscape) {
   .app-main { padding: 6px 8px 60px; }
-  #board    { max-width: 320px; margin: 0 auto; }
-}
+  }
 
 /* ═══════════════════════════════════════════════════════
    КОНТРОЛІ ВІДТВОРЕННЯ (ФАЗА 1)
