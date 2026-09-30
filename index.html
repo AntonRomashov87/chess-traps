@@ -3976,34 +3976,18 @@ const TRAP_ICONS = [
 ];
 
 function getTrapIcon(trap, idx) {
-  // За типом дебюту — відповідна фігура
-  const name = (trap.name?.uk || '').toLowerCase();
-  const opening = (trap.opening?.uk || '').toLowerCase();
-  if (opening.includes('італ') || opening.includes('іспан')) return '♗';
-  if (opening.includes('сицил')) return '♞';
-  if (opening.includes('французьк')) return '♜';
-  if (opening.includes('каро')) return '♝';
-  if (opening.includes('піркц') || opening.includes('модерн')) return '♟';
-  if (opening.includes('скандинав')) return '⚔️';
-  if (opening.includes('алехін')) return '♞';
-  if (opening.includes('ферзев') || opening.includes('ферзів')) return '♛';
-  if (opening.includes('король')) return '♔';
-  if (opening.includes('захист короля') || opening.includes('кіз')) return '♔';
-  if (opening.includes('англійськ')) return '🏰';
-  if (opening.includes('реті')) return '🎯';
-  if (opening.includes('польськ') || opening.includes('орангутан')) return '🐒';
-  if (opening.includes('дракон')) return '🐉';
-  if (opening.includes('будапешт')) return '🏛️';
-  if (opening.includes('голланд')) return '🌷';
-  if (opening.includes('бенькоц')) return '⚡';
-  if (opening.includes('грюнфельд')) return '♟';
-  if (opening.includes('слов') || opening.includes('напів')) return '🛡️';
-  if (opening.includes('гамбіт')) return '💥';
-  if (opening.includes('петров')) return '🔱';
-  if (opening.includes('німц')) return '🏹';
-  // За номером — чергуємо
-  const icons = ['♞','♝','♜','♛','♗','♙','⚔️','🎯','💥','⭐','🏆','👑','🔥','⚡','💎','🌟','🎪','🎭','🏰','🐉'];
-  return icons[idx % icons.length];
+  // Унікальне тематичне емодзі для кожної пастки
+  const ICONS = [
+    '🐦','⚖️','🐎','⛵','🏰','🗺️','🎺','🪞','👻','🦀',
+    '🧲','🐻‍❄️','⚗️','🐘','💎','🌀','🏯','🐲','🌿','🐒',
+    '🗡️','🎭','🌹','🔱','⚡','🌊','💣','🔥','🌪️','💥',
+    '🗼','🥐','🍷','🎨','🦞','🐆','🦅','🌙','🧊','🦊',
+    '🐍','🦁','💨','🪄','🎯','🧨','⚔️','🦋','🌺','🦄',
+    '🐝','🦚','🌷','🍄','🏔️','⭐','🛡️','🧩','🦜','🌴',
+    '🎸','🥊','🌟','👁️','🐊','🐉','🔮','🎲','🌈','🎻',
+    '🕊️','⚙️','🎪','🦝','🌠','🪐','🎠','🏹','🎋','🎭'
+  ];
+  return ICONS[idx % ICONS.length];
 }
 
 // ── СІТКА ПЛИТОК ─────────────────────────────────────
