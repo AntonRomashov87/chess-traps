@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>📊 Статистика — Шахові Пастки</title>
+<style>
+  :root {
+    --ink:      #2a1f0e;
+    --bg:       #3d2e18;
+    --bg2:      #2a1f10;
+    --parchment:#f5efe0;
+    --gold:     #c9922a;
+    --gold-lt:  #e8b84b;
+    --border:   #b8a882;
+    --muted:    #7a6a50;
+    --green:    #1e8c4a;
+    --red:      #c0392b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--parchment); font-family: 'Inter', sans-serif;
+         min-height: 100vh; }
+
+  /* HEADER */
+  .header {
+    background: var(--bg2); border-bottom: 2px solid var(--gold);
+    padding: 14px 24px; display: flex; align-items: center;
+    justify-content: space-between; gap: 12px;
+  }
+  .header-title { font-family: 'Playfair Display', serif; font-size: 20px;
+                  font-weight: 900; color: var(--gold); }
+  .header-sub   { font-size: 12px; color: var(--muted); }
+  .btn-logout   { background: transparent; border: 1px solid var(--muted);
+                  color: var(--muted); padding: 6px 14px; border-radius: 6px;
+                  cursor: pointer; font-size: 12px; transition: all .2s; }
+  .btn-logout:hover { border-color: var(--parchment); color: var(--parchment); }
+
+  /* LAYOUT */
+  .container { max-width: 1400px; margin: 0 auto; padding: 20px 20px 60px; }
+
+  /* КАРТИ ЗАГАЛЬНОЇ СТАТИСТИКИ */
+  .summary-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+                  gap: 12px; margin-bottom: 24px; }
+  .summary-card {
+    background: var(--bg2); border: 1px solid #3a2f1a;
+    border-radius: 10px; padding: 16px; text-align: center;
+  }
+  .summary-num   { font-size: 36px; font-weight: 900; color: var(--gold); line-height: 1; }
+  .summary-label { font-size: 11px; color: var(--muted); margin-top: 4px;
+                   text-transform: uppercase; letter-spacing: 1px; }
+
+  /* ПОШУК / ФІЛЬТР */
+  .toolbar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+  .search-input {
+    flex: 1; min-width: 200px; background: var(--bg2);
+    border: 1px solid #3a2f1a; color: var(--parchment);
+    padding: 8px 12px; border-radius: 6px; font-size: 13px;
+  }
+  .search-input:focus { outline: none; border-color: var(--gold); }
+  .sort-btn {
+    padding: 8px 14px; background: var(--bg2); border: 1px solid #3a2f1a;
+    color: var(--muted); border-radius: 6px; cursor: pointer; font-size: 12px;
+    transition: all .2s;
+  }
+  .sort-btn.active, .sort-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+  /* ТАБЛИЦЯ УЧНІВ */
+  .students-table { width: 100%; border-collapse: collapse; }
+  .students-table th {
+    background: var(--bg2); color: var(--muted); font-size: 11px;
+    text-transform: uppercase; letter-spacing: .5px; padding: 10px 12px;
+    text-align: left; border-bottom: 1px solid #3a2f1a; cursor: pointer;
+  }
+  .students-table th:hover { color: var(--gold); }
+  .students-table tr { border-bottom: 1px solid #2a2010; transition: background .15s; }
+  .students-table tr:hover { background: rgba(201,146,42,.06); cursor: pointer; }
+  .students-table td { padding: 10px 12px; font-size: 13px; }
+  .td-name   { font-weight: 600; color: var(--parchment); }
+  .td-email  { color: var(--muted); font-size: 12px; }
+  .td-num    { font-family: 'Fira Mono', monospace; text-align: center; }
+  .td-stars  { color: var(--gold-lt); }
+  .td-last   { font-size: 11px; color: var(--muted); }
+
+  /* Прогрес-бар */
+  .mini-bar { height: 6px; background: #3a2f1a; border-radius: 3px; overflow: hidden;
+              width: 100px; display: inline-block; vertical-align: middle; margin-left: 6px; }
+  .mini-bar-fill { height: 100%; background: var(--gold); border-radius: 3px; transition: width .3s; }
+  .mini-bar-fill.perfect { background: #4caf50; }
+
+  /* ДЕТАЛІ УЧНЯ (modal) */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7);
+    z-index: 100; align-items: center; justify-content: center; padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--bg2); border: 2px solid var(--gold); border-radius: 14px;
+    padding: 24px; width: 100%; max-width: 900px; max-height: 90vh; overflow-y: auto;
+    position: relative;
+  }
+  .modal-close {
+    position: absolute; top: 14px; right: 14px; background: transparent;
+    border: none; color: var(--muted); font-size: 20px; cursor: pointer; line-height: 1;
+  }
+  .modal-close:hover { color: var(--parchment); }
+  .modal-title { font-family: 'Playfair Display', serif; font-size: 20px;
+                 font-weight: 900; color: var(--gold); margin-bottom: 4px; }
+  .modal-sub   { font-size: 12px; color: var(--muted); margin-bottom: 16px; }
+
+  /* Сітка пасток в деталях */
+  .trap-detail-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 6px; margin-top: 12px;
+  }
+  .trap-cell {
+    background: #3a2f1a; border-radius: 6px; padding: 6px 4px;
+    text-align: center; font-size: 10px;
+  }
+  .trap-cell.done    { background: #1e4020; }
+  .trap-cell.perfect { background: #1a5020; border: 1px solid #4caf50; }
+  .trap-cell.current { background: #3a2010; border: 1px solid var(--gold); }
+  .trap-cell-num  { color: var(--muted); font-size: 9px; margin-bottom: 2px; }
+  .trap-cell-icon { font-size: 16px; }
+  .trap-cell-stars{ color: var(--gold-lt); font-size: 8px; margin-top: 2px; }
+  .trap-cell-phases{ display: flex; justify-content: center; gap: 2px; margin-top: 3px; }
+  .phase-dot { width: 5px; height: 5px; border-radius: 50%;
+               background: #5a4a30; border: 1px solid #7a6a40; }
+  .phase-dot.done    { background: #4caf50; border-color: #4caf50; }
+  .phase-dot.partial { background: var(--gold); border-color: var(--gold); }
+
+  /* Stats summary per student */
+  .student-summary { display: grid; grid-template-columns: repeat(4, 1fr);
+                     gap: 10px; margin-bottom: 16px; }
+  .sstats-card { background: #2a1f10; border-radius: 8px; padding: 12px;
+                 text-align: center; }
+  .sstats-num   { font-size: 26px; font-weight: 900; color: var(--gold); }
+  .sstats-label { font-size: 10px; color: var(--muted); text-transform: uppercase; }
+
+  /* Повідомлення про завантаження */
+  .loading { text-align: center; padding: 60px; color: var(--muted); font-size: 14px; }
+  .error   { text-align: center; padding: 40px; color: var(--red); font-size: 14px; }
+
+  /* LOGIN FORM */
+  .login-wrap {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; padding: 20px;
+  }
+  .login-box {
+    background: var(--bg2); border: 2px solid var(--gold);
+    border-radius: 14px; padding: 32px; width: 100%; max-width: 380px;
+  }
+  .login-title { font-family: 'Playfair Display', serif; font-size: 22px;
+                 color: var(--gold); margin-bottom: 6px; }
+  .login-sub   { font-size: 12px; color: var(--muted); margin-bottom: 20px; }
+  .field       { margin-bottom: 12px; }
+  .field label { display: block; font-size: 11px; color: var(--muted);
+                 text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+  .field input {
+    width: 100%; background: #2a1f10; border: 1px solid #3a2f1a;
+    color: var(--parchment); padding: 10px 12px; border-radius: 6px;
+    font-size: 13px;
+  }
+  .field input:focus { outline: none; border-color: var(--gold); }
+  .btn-primary {
+    width: 100%; background: var(--gold); border: none; color: var(--ink);
+    padding: 12px; border-radius: 8px; font-size: 14px; font-weight: 700;
+    cursor: pointer; margin-top: 4px; transition: background .2s;
+  }
+  .btn-primary:hover { background: var(--gold-lt); }
+  .login-err { color: var(--red); font-size: 12px; margin-top: 8px; text-align: center; }
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@900&family=Inter:wght@400;600;700&family=Fira+Mono&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- ── LOGIN ─────────────────────────────────────────── -->
+<div id="loginView" class="login-wrap">
+  <div class="login-box">
+    <div class="login-title">📊 Статистика учнів</div>
+    <div class="login-sub">Вхід для тренера Smart Chess System®</div>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="loginEmail" placeholder="trainer@school.ua">
+    </div>
+    <div class="field">
+      <label>Пароль</label>
+      <input type="password" id="loginPass" placeholder="••••••••">
+    </div>
+    <button class="btn-primary" onclick="doLogin()">Увійти</button>
+    <div class="login-err" id="loginErr"></div>
+  </div>
+</div>
+
+<!-- ── DASHBOARD ──────────────────────────────────────── -->
+<div id="dashView" style="display:none">
+  <div class="header">
+    <div>
+      <div class="header-title">♟ Шахові Пастки — Статистика</div>
+      <div class="header-sub" id="headerSub">Завантаження...</div>
+    </div>
+    <button class="btn-logout" onclick="doLogout()">Вийти</button>
+  </div>
+
+  <div class="container">
+    <!-- Загальна статистика -->
+    <div class="summary-grid" id="summaryGrid">
+      <div class="loading">Завантаження даних...</div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <input class="search-input" id="searchInput" placeholder="🔍 Пошук за ім'ям або email..."
+             oninput="renderTable()">
+      <button class="sort-btn active" id="sort-name" onclick="setSort('name')">↕ Ім'я</button>
+      <button class="sort-btn" id="sort-done" onclick="setSort('done')">↕ Пройдено</button>
+      <button class="sort-btn" id="sort-stars" onclick="setSort('stars')">↕ Зірки</button>
+      <button class="sort-btn" id="sort-last" onclick="setSort('last')">↕ Активність</button>
+      <button class="btn-logout" onclick="loadData()">🔄 Оновити</button>
+    </div>
+
+    <!-- Таблиця -->
+    <div style="overflow-x:auto;background:var(--bg2);border-radius:10px;border:1px solid #3a2f1a">
+      <table class="students-table">
+        <thead>
+          <tr>
+            <th onclick="setSort('name')">Учень</th>
+            <th onclick="setSort('done')">Пройдено</th>
+            <th onclick="setSort('perfect')">⭐⭐⭐</th>
+            <th onclick="setSort('stars')">Зірки</th>
+            <th onclick="setSort('last')">Остання активність</th>
+            <th>Дії</th>
+          </tr>
+        </thead>
+        <tbody id="studentsBody">
+          <tr><td colspan="6" class="loading">Завантаження...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ── ДЕТАЛІ УЧНЯ ─────────────────────────────────────── -->
+<div class="modal-overlay" id="detailModal" onclick="closeModal(event)">
+  <div class="modal" id="detailContent">
+    <button class="modal-close" onclick="closeDetail()">✕</button>
+    <div id="detailBody"></div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp }           from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword,
+         signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, doc, getDoc,
+         getDocs, collection }     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+// ── ЗАМІНИ НА СВІЙ CONFIG ──────────────────────────────────
+const FIREBASE_CONFIG = {
+  apiKey:            "ВСТАВИТИ_СВІЙ_КЛЮЧ",
+  authDomain:        "chess-traps-ТВІЙ.firebaseapp.com",
+  projectId:         "chess-traps-ТВІЙ",
+  storageBucket:     "chess-traps-ТВІЙ.appspot.com",
+  messagingSenderId: "ТВІЙ_ID",
+  appId:             "ТВІЙ_APP_ID"
+};
+
+const app  = initializeApp(FIREBASE_CONFIG);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+// Глобальний стан
+window._state = {
+  students:  [],
+  progress:  {},
+  sortKey:   'name',
+  sortDir:   1,
+};
+
+const TOTAL_TRAPS = 80;
+
+// ── ІКОНКИ ПАСТОК (скорочено) ────────────────────────────
+const ICONS = ['🐦','⚖️','🐎','⛵','🏰','🗺️','🎺','🪞','👻','🦀',
+  '🧲','🐻‍❄️','⚗️','🐘','💎','🌀','🏯','🐲','🌿','🐒',
+  '🗡️','🎭','🌹','🔱','⚡','🌊','💣','🔥','🌪️','💥',
+  '🗼','🥐','🍷','🎨','🦞','🐆','🦅','🌙','🧊','🦊',
+  '🐍','🦁','💨','🪄','🎯','🧨','⚔️','🦋','🌺','🦄',
+  '🐝','🦚','🌷','🍄','🏔️','⭐','🛡️','🧩','🦜','🌴',
+  '🎸','🥊','🌟','👁️','🐊','🐉','🔮','🎲','🌈','🎻',
+  '🕊️','⚙️','🎪','🦝','🌠','🪐','🎠','🏹','🎋','🎬'];
+
+// ── AUTH ─────────────────────────────────────────────────
+onAuthStateChanged(auth, async (user) => {
+  if (!user) { showLogin(); return; }
+  const snap = await getDoc(doc(db, 'users', user.uid));
+  if (!snap.exists() || snap.data().role !== 'teacher') {
+    await signOut(auth); showLogin(); return;
+  }
+  showDash(snap.data().name || user.email);
+  await loadData();
+});
+
+function showLogin() {
+  document.getElementById('loginView').style.display = 'flex';
+  document.getElementById('dashView').style.display  = 'none';
+}
+function showDash(name) {
+  document.getElementById('loginView').style.display = 'none';
+  document.getElementById('dashView').style.display  = 'block';
+  document.getElementById('headerSub').textContent   = `Тренер: ${name}`;
+}
+
+window.doLogin = async function() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass  = document.getElementById('loginPass').value;
+  const err   = document.getElementById('loginErr');
+  err.textContent = '';
+  try {
+    await signInWithEmailAndPassword(auth, email, pass);
+  } catch(e) {
+    err.textContent = 'Невірний email або пароль';
+  }
+};
+
+window.doLogout = () => signOut(auth);
+
+// ── ДАНІ ─────────────────────────────────────────────────
+window.loadData = async function() {
+  try {
+    const [usersSnap, progressSnap] = await Promise.all([
+      getDocs(collection(db, 'users')),
+      getDocs(collection(db, 'progress')),
+    ]);
+
+    _state.students = usersSnap.docs
+      .map(d => ({ uid: d.id, ...d.data() }))
+      .filter(u => u.role === 'student');
+
+    _state.progress = {};
+    progressSnap.docs.forEach(d => { _state.progress[d.id] = d.data(); });
+
+    renderSummary();
+    renderTable();
+  } catch(e) {
+    document.getElementById('studentsBody').innerHTML =
+      `<tr><td colspan="6" class="error">Помилка: ${e.message}</td></tr>`;
+  }
+};
+
+// ── ЗВЕДЕНА СТАТИСТИКА ────────────────────────────────────
+function renderSummary() {
+  const s = _state.students;
+  const p = _state.progress;
+
+  let totalDone = 0, totalPerfect = 0, totalStars = 0, activeToday = 0;
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  s.forEach(st => {
+    const prog = p[st.uid] || {};
+    for (let i = 0; i < TOTAL_TRAPS; i++) {
+      const t = prog[`trap_${i}`];
+      if (!t) continue;
+      if (t.p3 > 0)  totalDone++;
+      if (t.p3 === 3) totalPerfect++;
+      totalStars += (t.p3 || 0);
+    }
+    if (st.lastSeen?.toDate?.() >= today) activeToday++;
+  });
+
+  document.getElementById('summaryGrid').innerHTML = `
+    <div class="summary-card">
+      <div class="summary-num">${s.length}</div>
+      <div class="summary-label">Учнів</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-num">${activeToday}</div>
+      <div class="summary-label">Активні сьогодні</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-num">${totalDone}</div>
+      <div class="summary-label">Пасток пройдено</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-num">${totalPerfect}</div>
+      <div class="summary-label">Ідеально ⭐⭐⭐</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-num">${totalStars}</div>
+      <div class="summary-label">Зірок загалом</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-num">${s.length ? Math.round(totalDone/s.length) : 0}</div>
+      <div class="summary-label">Середнє пасток / учень</div>
+    </div>
+  `;
+}
+
+// ── ТАБЛИЦЯ УЧНІВ ─────────────────────────────────────────
+window.setSort = function(key) {
+  if (_state.sortKey === key) _state.sortDir *= -1;
+  else { _state.sortKey = key; _state.sortDir = 1; }
+  document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`sort-${key}`)?.classList.add('active');
+  renderTable();
+};
+
+window.renderTable = function() {
+  const q    = (document.getElementById('searchInput')?.value || '').toLowerCase();
+  const p    = _state.progress;
+  const key  = _state.sortKey;
+  const dir  = _state.sortDir;
+
+  let rows = _state.students
+    .filter(s => !q || s.name?.toLowerCase().includes(q) || s.email?.toLowerCase().includes(q))
+    .map(s => {
+      const prog = p[s.uid] || {};
+      let done = 0, perfect = 0, stars = 0;
+      for (let i = 0; i < TOTAL_TRAPS; i++) {
+        const t = prog[`trap_${i}`];
+        if (!t) continue;
+        if (t.p3 > 0)   done++;
+        if (t.p3 === 3)  perfect++;
+        stars += (t.p3 || 0);
+      }
+      const last = s.lastSeen?.toDate?.();
+      return { ...s, done, perfect, stars, last };
+    })
+    .sort((a, b) => {
+      if (key === 'name') return dir * (a.name||'').localeCompare(b.name||'');
+      if (key === 'last') return dir * ((b.last||0) - (a.last||0));
+      return dir * ((b[key]||0) - (a[key]||0));
+    });
+
+  const tbody = document.getElementById('studentsBody');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="loading">Учнів не знайдено</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = rows.map(s => {
+    const pct   = Math.round(s.done / TOTAL_TRAPS * 100);
+    const color = pct >= 80 ? 'perfect' : '';
+    const lastStr = s.last ? formatDate(s.last) : '—';
+    return `<tr onclick="showDetail('${s.uid}')">
+      <td>
+        <div class="td-name">${s.name || '—'}</div>
+        <div class="td-email">${s.email || ''}</div>
+      </td>
+      <td class="td-num">
+        ${s.done} / ${TOTAL_TRAPS}
+        <span class="mini-bar"><span class="mini-bar-fill ${color}" style="width:${pct}%"></span></span>
+      </td>
+      <td class="td-num">${s.perfect}</td>
+      <td class="td-stars">${'⭐'.repeat(Math.min(s.stars,5))} <span style="color:var(--muted);font-size:11px">${s.stars}</span></td>
+      <td class="td-last">${lastStr}</td>
+      <td><button class="sort-btn" onclick="event.stopPropagation();showDetail('${s.uid}')">Деталі</button></td>
+    </tr>`;
+  }).join('');
+};
+
+// ── ДЕТАЛІ УЧНЯ ───────────────────────────────────────────
+window.showDetail = function(uid) {
+  const s    = _state.students.find(x => x.uid === uid);
+  const prog = _state.progress[uid] || {};
+  if (!s) return;
+
+  let done = 0, perfect = 0, stars = 0;
+  for (let i = 0; i < TOTAL_TRAPS; i++) {
+    const t = prog[`trap_${i}`];
+    if (!t) continue;
+    if (t.p3 > 0)   done++;
+    if (t.p3 === 3)  perfect++;
+    stars += (t.p3 || 0);
+  }
+
+  const trapCells = Array.from({ length: TOTAL_TRAPS }, (_, i) => {
+    const t   = prog[`trap_${i}`];
+    const cls = !t ? '' : t.p3 === 3 ? 'perfect' : t.p3 > 0 ? 'done' : 'current';
+    const st  = t ? '⭐'.repeat(t.p3||0) : '';
+    const d1  = t?.p1 ? 'done' : '';
+    const d2  = t?.p2 ? 'done' : '';
+    const d3  = t?.p3 === 3 ? 'done' : t?.p3 > 0 ? 'partial' : '';
+    return `<div class="trap-cell ${cls}">
+      <div class="trap-cell-num">#${i+1}</div>
+      <div class="trap-cell-icon">${ICONS[i]||'♟'}</div>
+      <div class="trap-cell-stars">${st||'·'}</div>
+      <div class="trap-cell-phases">
+        <div class="phase-dot ${d1}"></div>
+        <div class="phase-dot ${d2}"></div>
+        <div class="phase-dot ${d3}"></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('detailBody').innerHTML = `
+    <div class="modal-title">${s.name || 'Учень'}</div>
+    <div class="modal-sub">${s.email} · Зареєстрований: ${formatDate(s.createdAt?.toDate?.()) || '—'}</div>
+    <div class="student-summary">
+      <div class="sstats-card"><div class="sstats-num">${done}</div><div class="sstats-label">Пройдено</div></div>
+      <div class="sstats-card"><div class="sstats-num">${perfect}</div><div class="sstats-label">Ідеально</div></div>
+      <div class="sstats-card"><div class="sstats-num">${stars}</div><div class="sstats-label">Зірок</div></div>
+      <div class="sstats-card"><div class="sstats-num">${TOTAL_TRAPS - done}</div><div class="sstats-label">Залишилось</div></div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">
+      Прогрес по пастках — 3 крапки = Пояснення / Вправа / Тест
+    </div>
+    <div class="trap-detail-grid">${trapCells}</div>
+  `;
+  document.getElementById('detailModal').classList.add('open');
+};
+
+window.closeDetail = () => document.getElementById('detailModal').classList.remove('open');
+window.closeModal  = (e) => { if (e.target.id === 'detailModal') closeDetail(); };
+
+// ── УТИЛІТИ ──────────────────────────────────────────────
+function formatDate(d) {
+  if (!d) return '—';
+  const date = d instanceof Date ? d : new Date(d);
+  return date.toLocaleDateString('uk-UA', { day:'2-digit', month:'2-digit', year:'numeric',
+                                            hour:'2-digit', minute:'2-digit' });
+}
+</script>
+</body>
+</html>
