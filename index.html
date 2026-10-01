@@ -1589,12 +1589,17 @@ header {
 
     <!-- ЛІВА КОЛОНКА: ДОШКА -->
     <div class="board-panel">
-      <div style="display:flex;align-items:center;gap:8px">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         <div class="trap-badge" id="trapBadge">ПАСТКА #1</div>
         <button id="editTrapBtn" onclick="openTeacherPanel()"
           style="display:none;background:var(--gold);border:none;border-radius:4px;
                  padding:3px 8px;font-size:11px;font-weight:700;cursor:pointer;
                  color:var(--ink);font-family:Inter,sans-serif">✏️ Редагувати</button>
+        <button id="flipBoardBtn" onclick="flipBoard()"
+          style="display:none;background:#2a1f10;border:1px solid var(--muted);border-radius:4px;
+                 padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;
+                 color:var(--parchment);font-family:Inter,sans-serif;transition:all .2s"
+          title="Перевернути дошку (Білі/Чорні внизу)">⚪ Білі внизу</button>
       </div>
       <div class="trap-name"    id="trapName">...</div>
       <div class="trap-opening" id="trapOpening">...</div>
@@ -4453,9 +4458,14 @@ function loadTrap() {
   const trap = ALL_TRAPS[currentTrap];
   if (!trap) return;
 
-  // Кнопка редагування — тільки для тренера
+  // Кнопки тренера — редагування і перевертання дошки
   const editBtn = el('editTrapBtn');
-  if (editBtn) editBtn.style.display = currentUser?.role === 'teacher' ? 'block' : 'none';
+  const flipBtn = el('flipBoardBtn');
+  const isTeacher = currentUser?.role === 'teacher';
+  if (editBtn) editBtn.style.display = isTeacher ? 'block' : 'none';
+  if (flipBtn) flipBtn.style.display = isTeacher ? 'flex' : 'none';
+  // Скидаємо орієнтацію при завантаженні нової пастки
+  resetBoardOrientation();
 
   const sideIcon = (trap.playAs || 'white') === 'black' ? '⚫' : '⚪';
   const sideText = (trap.playAs || 'white') === 'black'
@@ -5749,6 +5759,43 @@ function openTeacherPanel() {
 function editCurrentTrap() {
   if (currentUser?.role !== 'teacher') return;
   openTeacherPanel();
+}
+
+
+/* ── ПЕРЕВЕРТАННЯ ДОШКИ (тільки для тренера) ── */
+let boardFlipped = false;
+
+function flipBoard() {
+  boardFlipped = !boardFlipped;
+  if (board) board.flip();
+
+  // Оновлюємо підпис кнопки
+  const btn = el('flipBoardBtn');
+  if (btn) {
+    btn.textContent = boardFlipped ? '⚫ Чорні внизу' : '⚪ Білі внизу';
+    btn.style.background   = boardFlipped ? '#1a1208' : '#2a1f10';
+    btn.style.borderColor  = boardFlipped ? 'var(--gold)' : 'var(--muted)';
+    btn.style.color        = boardFlipped ? 'var(--gold-lt)' : 'var(--parchment)';
+  }
+}
+
+function resetBoardOrientation() {
+  const trap = ALL_TRAPS[currentTrap];
+  const natural = trap?.orientation || trap?.playAs || 'white';
+  // Якщо поточна орієнтація не відповідає природній — скидаємо
+  if (board) {
+    if (natural === 'black' && !boardFlipped) {
+      // дошка вже перевернута в loadTrap через orientation
+    }
+  }
+  boardFlipped = false;
+  const btn = el('flipBoardBtn');
+  if (btn) {
+    btn.textContent = '⚪ Білі внизу';
+    btn.style.background  = '#2a1f10';
+    btn.style.borderColor = 'var(--muted)';
+    btn.style.color       = 'var(--parchment)';
+  }
 }
 
 </script>
