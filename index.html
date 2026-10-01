@@ -1376,6 +1376,98 @@ header {
 
 
 </style>
+  <!-- Firebase SDK -->
+  <script type="module">
+  import { initializeApp }                          from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword,
+           signInWithEmailAndPassword, signOut,
+           onAuthStateChanged }                     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { getFirestore, doc, setDoc, getDoc,
+           updateDoc, getDocs, collection,
+           serverTimestamp }                        from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  const FIREBASE_CONFIG = {
+    apiKey:            "AIzaSyBu0zN7U3er4s3CrcdS4OyWNad7SWeLRIw",
+    authDomain:        "chess-traps-trainer.firebaseapp.com",
+    projectId:         "chess-traps-trainer",
+    storageBucket:     "chess-traps-trainer.firebasestorage.app",
+    messagingSenderId: "630855986124",
+    appId:             "1:630855986124:web:184cda4795aea78956cb69"
+  };
+
+  const fbApp  = initializeApp(FIREBASE_CONFIG);
+  const fbAuth = getAuth(fbApp);
+  const fbDb   = getFirestore(fbApp);
+
+  // Робимо доступними глобально для основного скрипту
+  window._fb = {
+    auth: fbAuth, db: fbDb,
+    // Auth functions
+    async register(name, email, pass) {
+      const cred = await createUserWithEmailAndPassword(fbAuth, email, pass);
+      const uid  = cred.user.uid;
+      await setDoc(doc(fbDb, 'users', uid), {
+        name, email, role: 'student',
+        createdAt: serverTimestamp(), lastSeen: serverTimestamp()
+      });
+      await setDoc(doc(fbDb, 'progress', uid), { updatedAt: serverTimestamp() });
+      return { uid, name, email, role: 'student' };
+    },
+    async login(email, pass) {
+      const cred    = await signInWithEmailAndPassword(fbAuth, email, pass);
+      const uid     = cred.user.uid;
+      const userDoc = await getDoc(doc(fbDb, 'users', uid));
+      if (!userDoc.exists()) throw new Error('Профіль не знайдено');
+      await updateDoc(doc(fbDb, 'users', uid), { lastSeen: serverTimestamp() });
+      return { uid, ...userDoc.data() };
+    },
+    async logout() { await signOut(fbAuth); },
+    // Progress
+    async saveProgress(uid, progress) {
+      const data = { updatedAt: serverTimestamp() };
+      progress.forEach((p, i) => {
+        if (p && (p.p1 || p.p2 || p.p3))
+          data[`trap_${i}`] = { p1: !!p.p1, p2: !!p.p2, p3: p.p3 || 0 };
+      });
+      await setDoc(doc(fbDb, 'progress', uid), data, { merge: true });
+    },
+    async loadProgress(uid) {
+      const snap = await getDoc(doc(fbDb, 'progress', uid));
+      if (!snap.exists()) return [];
+      const data = snap.data();
+      const result = [];
+      Object.entries(data).forEach(([k, v]) => {
+        if (k.startsWith('trap_')) result[parseInt(k.replace('trap_',''))] = v;
+      });
+      return result;
+    },
+    // Trap overrides
+    async saveTrapOverride(idx, data) {
+      await setDoc(doc(fbDb, 'trap_overrides', `trap_${idx}`),
+        { ...data, updatedAt: serverTimestamp() });
+    },
+    async loadTrapOverrides() {
+      const snap = await getDocs(collection(fbDb, 'trap_overrides'));
+      const result = {};
+      snap.docs.forEach(d => {
+        result[parseInt(d.id.replace('trap_',''))] = d.data();
+      });
+      return result;
+    }
+  };
+
+  // Слухач стану авторизації — відновлюємо сесію
+  onAuthStateChanged(fbAuth, async (user) => {
+    if (user && window._fbRestoreSession) {
+      try {
+        const userDoc = await getDoc(doc(fbDb, 'users', user.uid));
+        if (userDoc.exists()) {
+          window._fbRestoredUser = { uid: user.uid, ...userDoc.data() };
+        }
+      } catch(e) { console.warn('Firebase restore:', e); }
+    }
+  });
+  </script>
 </head>
 <body>
 
@@ -1397,24 +1489,49 @@ header {
       <button class="role-tab active" id="roleTabStudent" onclick="setLoginRole('student')">🎓 Учень</button>
     </div>
 
+    <!-- Вкладка ВХІД / РЕЄСТРАЦІЯ (тільки для учнів) -->
+    <div id="authTabs" style="display:flex;gap:0;margin-bottom:10px;border-radius:6px;overflow:hidden;border:1px solid var(--border)">
+      <button id="tabLogin" onclick="setAuthTab('login')"
+        style="flex:1;padding:8px;background:var(--gold);border:none;color:var(--ink);
+               font-weight:700;font-size:12px;cursor:pointer">Увійти</button>
+      <button id="tabRegister" onclick="setAuthTab('register')"
+        style="flex:1;padding:8px;background:transparent;border:none;color:var(--muted);
+               font-weight:700;font-size:12px;cursor:pointer">Реєстрація</button>
+    </div>
+
     <!-- Поля тренера -->
     <div id="teacherFields" style="display:none">
+      <input class="login-field" id="teacherEmail" type="email"
+        placeholder="Email тренера" autocomplete="email">
       <input class="login-field" id="teacherPass" type="password"
-        placeholder="Пароль тренера" autocomplete="current-password">
+        placeholder="Пароль" autocomplete="current-password" style="margin-top:8px">
     </div>
 
-    <!-- Поля учня -->
-    <div id="studentFields">
-      <input class="login-field" id="studentName" type="text"
-        placeholder="Твоє ім'я (наприклад: Олег)" autocomplete="name">
+    <!-- Поля учня — ВХІД -->
+    <div id="studentLoginFields">
+      <input class="login-field" id="studentEmail" type="email"
+        placeholder="Email" autocomplete="email">
+      <input class="login-field" id="studentPass" type="password"
+        placeholder="Пароль" autocomplete="current-password" style="margin-top:8px">
     </div>
 
-    <button class="login-btn" onclick="doLogin()">Увійти →</button>
+    <!-- Поля учня — РЕЄСТРАЦІЯ -->
+    <div id="studentRegFields" style="display:none">
+      <input class="login-field" id="regName" type="text"
+        placeholder="Твоє ім'я (Олег Коваль)" autocomplete="name">
+      <input class="login-field" id="regEmail" type="email"
+        placeholder="Email" autocomplete="email" style="margin-top:8px">
+      <input class="login-field" id="regPass" type="password"
+        placeholder="Пароль (мін. 6 символів)" style="margin-top:8px">
+      <input class="login-field" id="regPass2" type="password"
+        placeholder="Повторіть пароль" style="margin-top:8px">
+    </div>
+
+    <button class="login-btn" id="loginBtn" onclick="doLogin()">Увійти →</button>
     <div class="login-err" id="loginErr"></div>
 
-    <div class="login-hint">
-      Тренер: введіть пароль адміністратора<br>
-      Учень: просто введіть своє ім'я
+    <div class="login-hint" id="loginHint">
+      Немає акаунту? Натисни <b>Реєстрація</b> вище
     </div>
   </div>
 </div>
@@ -4033,37 +4150,137 @@ let customTraps  = [];         // пастки тренера
 ─────────────────────────────────────────────────────── */
 function setLoginRole(role) {
   loginRole = role;
-  el('roleTabTeacher').classList.toggle('active', role === 'teacher');
-  el('roleTabStudent').classList.toggle('active', role === 'student');
-  el('teacherFields').style.display = role === 'teacher' ? '' : 'none';
-  el('studentFields').style.display = role === 'student' ? '' : 'none';
-  el('loginErr').textContent = '';
+  el('roleTabTeacher')?.classList.toggle('active', role === 'teacher');
+  el('roleTabStudent')?.classList.toggle('active', role === 'student');
+
+  const isTeacher = role === 'teacher';
+  if (el('teacherFields'))     el('teacherFields').style.display     = isTeacher ? 'block' : 'none';
+  if (el('authTabs'))          el('authTabs').style.display           = isTeacher ? 'none'  : 'flex';
+  if (el('studentLoginFields'))el('studentLoginFields').style.display = isTeacher ? 'none'  : 'block';
+  if (el('studentRegFields'))  el('studentRegFields').style.display   = 'none';
+  if (el('loginHint'))         el('loginHint').style.display          = isTeacher ? 'none'  : 'block';
+
+  const btn = el('loginBtn');
+  if (btn) btn.textContent = 'Увійти →';
+  if (el('loginErr')) el('loginErr').textContent = '';
+}
+
+function setAuthTab(tab) {
+  const isLogin = tab === 'login';
+  // Кнопки вкладок
+  const tabL = el('tabLogin');
+  const tabR = el('tabRegister');
+  if (tabL) { tabL.style.background = isLogin ? 'var(--gold)' : 'transparent';
+               tabL.style.color     = isLogin ? 'var(--ink)'  : 'var(--muted)'; }
+  if (tabR) { tabR.style.background = !isLogin ? 'var(--gold)' : 'transparent';
+               tabR.style.color     = !isLogin ? 'var(--ink)'  : 'var(--muted)'; }
+  // Поля
+  if (el('studentLoginFields')) el('studentLoginFields').style.display = isLogin  ? 'block' : 'none';
+  if (el('studentRegFields'))   el('studentRegFields').style.display   = !isLogin ? 'block' : 'none';
+  // Кнопка
+  const btn = el('loginBtn');
+  if (btn) {
+    btn.textContent = isLogin ? 'Увійти →' : 'Зареєструватись →';
+    btn.onclick     = isLogin ? doLogin : doRegister;
+  }
+  if (el('loginErr')) el('loginErr').textContent = '';
 }
 
 function doLogin() {
   const err = el('loginErr');
   err.textContent = '';
+  const btn = el('loginBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Вхід...'; }
+
+  const restore = () => {
+    if (btn) { btn.disabled = false; btn.textContent = 'Увійти →'; }
+  };
 
   if (loginRole === 'teacher') {
-    const pass = el('teacherPass').value;
-    if (pass !== TEACHER_PASSWORD) {
-      err.textContent = 'Невірний пароль тренера';
-      el('teacherPass').value = '';
-      el('teacherPass').focus();
-      return;
+    // ── Тренер — Firebase Auth ──────────────────────────────
+    const email = (el('teacherEmail')?.value || '').trim();
+    const pass  =  el('teacherPass')?.value  || '';
+    if (!email || !pass) {
+      err.textContent = 'Введіть email і пароль'; restore(); return;
     }
-    currentUser = { name: 'Тренер', role: 'teacher' };
-  } else {
-    const name = el('studentName').value.trim();
-    if (!name || name.length < 2) {
-      err.textContent = 'Введіть ваше ім\'я (мінімум 2 символи)';
-      return;
-    }
-    currentUser = { name, role: 'student' };
-  }
+    if (!window._fb) { err.textContent = 'Firebase не підключено'; restore(); return; }
+    window._fb.login(email, pass)
+      .then(user => {
+        if (user.role !== 'teacher') {
+          err.textContent = 'Цей акаунт не має прав тренера';
+          window._fb.logout(); restore(); return;
+        }
+        currentUser = user;
+        startApp();
+      })
+      .catch(e => {
+        err.textContent = 'Невірний email або пароль';
+        restore();
+      });
 
-  try { localStorage.setItem(KEY_USER, JSON.stringify(currentUser)); } catch (e) {}
-  startApp();
+  } else {
+    // ── Учень — Firebase Auth ───────────────────────────────
+    const email = (el('studentEmail')?.value || '').trim();
+    const pass  =  el('studentPass')?.value  || '';
+    if (!email || !pass) {
+      err.textContent = 'Введіть email і пароль'; restore(); return;
+    }
+    if (!window._fb) { err.textContent = 'Firebase не підключено'; restore(); return; }
+    window._fb.login(email, pass)
+      .then(user => {
+        currentUser = user;
+        startApp();
+      })
+      .catch(e => {
+        if (e.code === 'auth/user-not-found' || e.code === 'auth/wrong-password' ||
+            e.code === 'auth/invalid-credential') {
+          err.textContent = 'Невірний email або пароль';
+        } else {
+          err.textContent = 'Помилка входу: ' + (e.message || e.code || '');
+        }
+        restore();
+      });
+  }
+}
+
+function doRegister() {
+  const err  = el('loginErr');
+  err.textContent = '';
+  const btn  = el('loginBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Реєстрація...'; }
+
+  const restore = () => {
+    if (btn) { btn.disabled = false; btn.textContent = 'Зареєструватись →'; }
+  };
+
+  const name  = (el('regName')?.value  || '').trim();
+  const email = (el('regEmail')?.value || '').trim();
+  const pass  =  el('regPass')?.value  || '';
+  const pass2 =  el('regPass2')?.value || '';
+
+  if (!name)          { err.textContent = "Введіть ім'я"; restore(); return; }
+  if (!email)         { err.textContent = 'Введіть email'; restore(); return; }
+  if (pass.length < 6){ err.textContent = 'Пароль мінімум 6 символів'; restore(); return; }
+  if (pass !== pass2) { err.textContent = 'Паролі не збігаються'; restore(); return; }
+  if (!window._fb)    { err.textContent = 'Firebase не підключено'; restore(); return; }
+
+  window._fb.register(name, email, pass)
+    .then(user => {
+      currentUser = user;
+      startApp();
+    })
+    .catch(e => {
+      if (e.code === 'auth/email-already-in-use') {
+        err.textContent = 'Цей email вже зареєстрований — увійдіть';
+      } else if (e.code === 'auth/invalid-email') {
+        err.textContent = 'Невірний формат email';
+      } else if (e.code === 'auth/weak-password') {
+        err.textContent = 'Пароль надто простий';
+      } else {
+        err.textContent = 'Помилка: ' + (e.message || e.code || '');
+      }
+      restore();
+    });
 }
 
 function doLogout() {
@@ -4231,8 +4448,14 @@ function loadProgress() {
 
 function saveProgress() {
   try {
-    const key = KEY_PROGRESS + (currentUser?.name || 'guest');
+    // localStorage (швидкий fallback)
+    const key = KEY_PROGRESS + (currentUser?.uid || currentUser?.name || 'guest');
     localStorage.setItem(key, JSON.stringify(trapProgress));
+    // Firebase (асинхронно, не блокує)
+    if (window._fb && currentUser?.uid) {
+      window._fb.saveProgress(currentUser.uid, trapProgress)
+        .catch(e => console.warn('Firebase saveProgress:', e));
+    }
   } catch (e) {}
 }
 
@@ -5707,33 +5930,26 @@ function buildStepsFromAll(allMoves, allSan, nameUk, playAs) {
 
 // ── ЗБЕРЕГТИ ВСІ КАСТОМНІ ПАСТКИ ──────────────────────
 function saveCustomTrapsToStorage() {
-  // Зберігаємо тільки кастомні і змінені пастки
-  const changed = ALL_TRAPS.map((t, i) => t.custom ? t : null).filter(Boolean);
-  // Зберігаємо також оверрайди для стандартних пасток
   const overrides = {};
   ALL_TRAPS.forEach((t, i) => {
-    if (!t.custom) {
-      // Зберігаємо тільки якщо щось змінилось (є custom icon або інші зміни)
-      if (customIcons[`trap_${i}`] || t._edited) {
-        overrides[i] = {
-          name:     t.name,
-          opening:  t.opening,
-          desc:     t.desc,
-          white:    t.white,
-          black:    t.black,
-          playAs:   t.playAs,
-          result:   t.result,
-          allMoves: t.allMoves,
-          allSan:   t.allSan,
-          steps:    t.steps,
-        };
-      }
+    if (customIcons[`trap_${i}`] || t._edited || t.custom) {
+      overrides[i] = {
+        name: t.name, opening: t.opening, desc: t.desc,
+        white: t.white, black: t.black, playAs: t.playAs,
+        result: t.result, allMoves: t.allMoves, allSan: t.allSan, steps: t.steps,
+      };
     }
   });
+  // localStorage
   localStorage.setItem('scs_trap_overrides', JSON.stringify(overrides));
-  localStorage.setItem('scs_custom_traps',   JSON.stringify(
-    ALL_TRAPS.filter(t => t.custom)
-  ));
+  localStorage.setItem('scs_custom_traps', JSON.stringify(ALL_TRAPS.filter(t => t.custom)));
+  // Firebase — зберігаємо кожен override
+  if (window._fb && currentUser?.role === 'teacher') {
+    Object.entries(overrides).forEach(([idx, data]) => {
+      window._fb.saveTrapOverride(parseInt(idx), data)
+        .catch(e => console.warn('Firebase saveTrapOverride:', e));
+    });
+  }
 }
 
 // ── ЗАВАНТАЖЕННЯ OVERRIDES ─────────────────────────────
