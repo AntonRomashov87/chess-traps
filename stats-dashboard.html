@@ -247,278 +247,205 @@
   </div>
 </div>
 
-<script type="module">
-import { initializeApp }           from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword,
-         signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, doc, getDoc,
-         getDocs, collection }     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+<script src="https://cdn.jsdelivr.net/npm/firebase@10.7.1/firebase-app-compat.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/firebase@10.7.1/firebase-auth-compat.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/firebase@10.7.1/firebase-firestore-compat.min.js"></script>
+<script>
+(function() {
+  const FIREBASE_CONFIG = {
+    apiKey:            "AIzaSyBu0zN7U3er4s3CrcdS4OyWNad7SWeLRIw",
+    authDomain:        "chess-traps-trainer.firebaseapp.com",
+    projectId:         "chess-traps-trainer",
+    storageBucket:     "chess-traps-trainer.firebasestorage.app",
+    messagingSenderId: "630855986124",
+    appId:             "1:630855986124:web:184cda4795aea78956cb69"
+  };
 
-// ── ЗАМІНИ НА СВІЙ CONFIG ──────────────────────────────────
-const FIREBASE_CONFIG = {
-  apiKey:            "ВСТАВИТИ_СВІЙ_КЛЮЧ",
-  authDomain:        "chess-traps-ТВІЙ.firebaseapp.com",
-  projectId:         "chess-traps-ТВІЙ",
-  storageBucket:     "chess-traps-ТВІЙ.appspot.com",
-  messagingSenderId: "ТВІЙ_ID",
-  appId:             "ТВІЙ_APP_ID"
-};
+  const app  = firebase.initializeApp(FIREBASE_CONFIG);
+  const auth = firebase.auth();
+  const db   = firebase.firestore();
 
-const app  = initializeApp(FIREBASE_CONFIG);
-const auth = getAuth(app);
-const db   = getFirestore(app);
+  const TOTAL_TRAPS = 80;
+  const ICONS = ['🐦','⚖️','🐎','⛵','🏰','🗺️','🎺','🪞','👻','🦀',
+    '🧲','🐻‍❄️','⚗️','🐘','💎','🌀','🏯','🐲','🌿','🐒',
+    '🗡️','🎭','🌹','🔱','⚡','🌊','💣','🔥','🌪️','💥',
+    '🗼','🥐','🍷','🎨','🦞','🐆','🦅','🌙','🧊','🦊',
+    '🐍','🦁','💨','🪄','🎯','🧨','⚔️','🦋','🌺','🦄',
+    '🐝','🦚','🌷','🍄','🏔️','⭐','🛡️','🧩','🦜','🌴',
+    '🎸','🥊','🌟','👁️','🐊','🐉','🔮','🎲','🌈','🎻',
+    '🕊️','⚙️','🎪','🦝','🌠','🪐','🎠','🏹','🎋','🎬'];
 
-// Глобальний стан
-window._state = {
-  students:  [],
-  progress:  {},
-  sortKey:   'name',
-  sortDir:   1,
-};
+  // Стан
+  window._state = { students: [], progress: {}, sortKey: 'name', sortDir: 1 };
 
-const TOTAL_TRAPS = 80;
-
-// ── ІКОНКИ ПАСТОК (скорочено) ────────────────────────────
-const ICONS = ['🐦','⚖️','🐎','⛵','🏰','🗺️','🎺','🪞','👻','🦀',
-  '🧲','🐻‍❄️','⚗️','🐘','💎','🌀','🏯','🐲','🌿','🐒',
-  '🗡️','🎭','🌹','🔱','⚡','🌊','💣','🔥','🌪️','💥',
-  '🗼','🥐','🍷','🎨','🦞','🐆','🦅','🌙','🧊','🦊',
-  '🐍','🦁','💨','🪄','🎯','🧨','⚔️','🦋','🌺','🦄',
-  '🐝','🦚','🌷','🍄','🏔️','⭐','🛡️','🧩','🦜','🌴',
-  '🎸','🥊','🌟','👁️','🐊','🐉','🔮','🎲','🌈','🎻',
-  '🕊️','⚙️','🎪','🦝','🌠','🪐','🎠','🏹','🎋','🎬'];
-
-// ── AUTH ─────────────────────────────────────────────────
-onAuthStateChanged(auth, async (user) => {
-  if (!user) { showLogin(); return; }
-  const snap = await getDoc(doc(db, 'users', user.uid));
-  if (!snap.exists() || snap.data().role !== 'teacher') {
-    await signOut(auth); showLogin(); return;
-  }
-  showDash(snap.data().name || user.email);
-  await loadData();
-});
-
-function showLogin() {
-  document.getElementById('loginView').style.display = 'flex';
-  document.getElementById('dashView').style.display  = 'none';
-}
-function showDash(name) {
-  document.getElementById('loginView').style.display = 'none';
-  document.getElementById('dashView').style.display  = 'block';
-  document.getElementById('headerSub').textContent   = `Тренер: ${name}`;
-}
-
-window.doLogin = async function() {
-  const email = document.getElementById('loginEmail').value.trim();
-  const pass  = document.getElementById('loginPass').value;
-  const err   = document.getElementById('loginErr');
-  err.textContent = '';
-  try {
-    await signInWithEmailAndPassword(auth, email, pass);
-  } catch(e) {
-    err.textContent = 'Невірний email або пароль';
-  }
-};
-
-window.doLogout = () => signOut(auth);
-
-// ── ДАНІ ─────────────────────────────────────────────────
-window.loadData = async function() {
-  try {
-    const [usersSnap, progressSnap] = await Promise.all([
-      getDocs(collection(db, 'users')),
-      getDocs(collection(db, 'progress')),
-    ]);
-
-    _state.students = usersSnap.docs
-      .map(d => ({ uid: d.id, ...d.data() }))
-      .filter(u => u.role === 'student');
-
-    _state.progress = {};
-    progressSnap.docs.forEach(d => { _state.progress[d.id] = d.data(); });
-
-    renderSummary();
-    renderTable();
-  } catch(e) {
-    document.getElementById('studentsBody').innerHTML =
-      `<tr><td colspan="6" class="error">Помилка: ${e.message}</td></tr>`;
-  }
-};
-
-// ── ЗВЕДЕНА СТАТИСТИКА ────────────────────────────────────
-function renderSummary() {
-  const s = _state.students;
-  const p = _state.progress;
-
-  let totalDone = 0, totalPerfect = 0, totalStars = 0, activeToday = 0;
-  const today = new Date();
-  today.setHours(0,0,0,0);
-
-  s.forEach(st => {
-    const prog = p[st.uid] || {};
-    for (let i = 0; i < TOTAL_TRAPS; i++) {
-      const t = prog[`trap_${i}`];
-      if (!t) continue;
-      if (t.p3 > 0)  totalDone++;
-      if (t.p3 === 3) totalPerfect++;
-      totalStars += (t.p3 || 0);
+  // Auth слухач
+  auth.onAuthStateChanged(async function(user) {
+    if (!user) { showLoginView(); return; }
+    try {
+      const doc = await db.collection('users').doc(user.uid).get();
+      if (!doc.exists || doc.data().role !== 'teacher') {
+        await auth.signOut(); showLoginView(); return;
+      }
+      showDashView(doc.data().name || user.email);
+      await loadData();
+    } catch(e) {
+      console.error(e);
+      showLoginView();
     }
-    if (st.lastSeen?.toDate?.() >= today) activeToday++;
   });
 
-  document.getElementById('summaryGrid').innerHTML = `
-    <div class="summary-card">
-      <div class="summary-num">${s.length}</div>
-      <div class="summary-label">Учнів</div>
-    </div>
-    <div class="summary-card">
-      <div class="summary-num">${activeToday}</div>
-      <div class="summary-label">Активні сьогодні</div>
-    </div>
-    <div class="summary-card">
-      <div class="summary-num">${totalDone}</div>
-      <div class="summary-label">Пасток пройдено</div>
-    </div>
-    <div class="summary-card">
-      <div class="summary-num">${totalPerfect}</div>
-      <div class="summary-label">Ідеально ⭐⭐⭐</div>
-    </div>
-    <div class="summary-card">
-      <div class="summary-num">${totalStars}</div>
-      <div class="summary-label">Зірок загалом</div>
-    </div>
-    <div class="summary-card">
-      <div class="summary-num">${s.length ? Math.round(totalDone/s.length) : 0}</div>
-      <div class="summary-label">Середнє пасток / учень</div>
-    </div>
-  `;
-}
+  function showLoginView() {
+    document.getElementById('loginView').style.display = 'flex';
+    document.getElementById('dashView').style.display  = 'none';
+  }
+  function showDashView(name) {
+    document.getElementById('loginView').style.display = 'none';
+    document.getElementById('dashView').style.display  = 'block';
+    document.getElementById('headerSub').textContent   = 'Тренер: ' + name;
+  }
 
-// ── ТАБЛИЦЯ УЧНІВ ─────────────────────────────────────────
-window.setSort = function(key) {
-  if (_state.sortKey === key) _state.sortDir *= -1;
-  else { _state.sortKey = key; _state.sortDir = 1; }
-  document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById(`sort-${key}`)?.classList.add('active');
-  renderTable();
-};
+  window.doLogin = async function() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const pass  = document.getElementById('loginPass').value;
+    const err   = document.getElementById('loginErr');
+    const btn   = document.querySelector('#loginView .btn-primary');
+    err.textContent = '';
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Вхід...'; }
+    try {
+      await auth.signInWithEmailAndPassword(email, pass);
+    } catch(e) {
+      err.textContent = 'Невірний email або пароль';
+      if (btn) { btn.disabled = false; btn.textContent = 'Увійти'; }
+    }
+  };
 
-window.renderTable = function() {
-  const q    = (document.getElementById('searchInput')?.value || '').toLowerCase();
-  const p    = _state.progress;
-  const key  = _state.sortKey;
-  const dir  = _state.sortDir;
+  window.doLogout = async function() {
+    await auth.signOut();
+  };
 
-  let rows = _state.students
-    .filter(s => !q || s.name?.toLowerCase().includes(q) || s.email?.toLowerCase().includes(q))
-    .map(s => {
-      const prog = p[s.uid] || {};
-      let done = 0, perfect = 0, stars = 0;
-      for (let i = 0; i < TOTAL_TRAPS; i++) {
-        const t = prog[`trap_${i}`];
+  window.loadData = async function() {
+    try {
+      const [usersSnap, progressSnap] = await Promise.all([
+        db.collection('users').get(),
+        db.collection('progress').get()
+      ]);
+      _state.students = usersSnap.docs
+        .map(d => ({ uid: d.id, ...d.data() }))
+        .filter(u => u.role === 'student');
+      _state.progress = {};
+      progressSnap.docs.forEach(d => { _state.progress[d.id] = d.data(); });
+      renderSummary();
+      renderTable();
+    } catch(e) {
+      document.getElementById('studentsBody').innerHTML =
+        '<tr><td colspan="6" class="loading" style="color:#c0392b">Помилка: ' + e.message + '</td></tr>';
+    }
+  };
+
+  function renderSummary() {
+    const s = _state.students;
+    const p = _state.progress;
+    let totalDone=0, totalPerfect=0, totalStars=0, activeToday=0;
+    const today = new Date(); today.setHours(0,0,0,0);
+    s.forEach(st => {
+      const prog = p[st.uid] || {};
+      for (let i=0; i<TOTAL_TRAPS; i++) {
+        const t = prog['trap_'+i];
         if (!t) continue;
-        if (t.p3 > 0)   done++;
-        if (t.p3 === 3)  perfect++;
-        stars += (t.p3 || 0);
+        if (t.p3 > 0)  totalDone++;
+        if (t.p3 === 3) totalPerfect++;
+        totalStars += (t.p3||0);
       }
-      const last = s.lastSeen?.toDate?.();
-      return { ...s, done, perfect, stars, last };
-    })
-    .sort((a, b) => {
-      if (key === 'name') return dir * (a.name||'').localeCompare(b.name||'');
-      if (key === 'last') return dir * ((b.last||0) - (a.last||0));
-      return dir * ((b[key]||0) - (a[key]||0));
+      const ls = st.lastSeen && st.lastSeen.toDate ? st.lastSeen.toDate() : null;
+      if (ls && ls >= today) activeToday++;
     });
-
-  const tbody = document.getElementById('studentsBody');
-  if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="6" class="loading">Учнів не знайдено</td></tr>';
-    return;
+    document.getElementById('summaryGrid').innerHTML = [
+      [s.length,      'Учнів'],
+      [activeToday,   'Активні сьогодні'],
+      [totalDone,     'Пасток пройдено'],
+      [totalPerfect,  'Ідеально ⭐⭐⭐'],
+      [totalStars,    'Зірок загалом'],
+      [s.length ? Math.round(totalDone/s.length) : 0, 'Середнє / учень']
+    ].map(([n,l]) =>
+      '<div class="summary-card"><div class="summary-num">'+n+'</div><div class="summary-label">'+l+'</div></div>'
+    ).join('');
   }
 
-  tbody.innerHTML = rows.map(s => {
-    const pct   = Math.round(s.done / TOTAL_TRAPS * 100);
-    const color = pct >= 80 ? 'perfect' : '';
-    const lastStr = s.last ? formatDate(s.last) : '—';
-    return `<tr onclick="showDetail('${s.uid}')">
-      <td>
-        <div class="td-name">${s.name || '—'}</div>
-        <div class="td-email">${s.email || ''}</div>
-      </td>
-      <td class="td-num">
-        ${s.done} / ${TOTAL_TRAPS}
-        <span class="mini-bar"><span class="mini-bar-fill ${color}" style="width:${pct}%"></span></span>
-      </td>
-      <td class="td-num">${s.perfect}</td>
-      <td class="td-stars">${'⭐'.repeat(Math.min(s.stars,5))} <span style="color:var(--muted);font-size:11px">${s.stars}</span></td>
-      <td class="td-last">${lastStr}</td>
-      <td><button class="sort-btn" onclick="event.stopPropagation();showDetail('${s.uid}')">Деталі</button></td>
-    </tr>`;
-  }).join('');
-};
+  window.setSort = function(key) {
+    if (_state.sortKey===key) _state.sortDir*=-1;
+    else { _state.sortKey=key; _state.sortDir=1; }
+    document.querySelectorAll('.sort-btn').forEach(b=>b.classList.remove('active'));
+    const sb = document.getElementById('sort-'+key);
+    if (sb) sb.classList.add('active');
+    renderTable();
+  };
 
-// ── ДЕТАЛІ УЧНЯ ───────────────────────────────────────────
-window.showDetail = function(uid) {
-  const s    = _state.students.find(x => x.uid === uid);
-  const prog = _state.progress[uid] || {};
-  if (!s) return;
+  window.renderTable = function() {
+    const q   = (document.getElementById('searchInput')?.value||'').toLowerCase();
+    const p   = _state.progress;
+    const key = _state.sortKey;
+    const dir = _state.sortDir;
+    let rows = _state.students
+      .filter(s => !q || (s.name||'').toLowerCase().includes(q) || (s.email||'').toLowerCase().includes(q))
+      .map(s => {
+        const prog=p[s.uid]||{}; let done=0,perfect=0,stars=0;
+        for(let i=0;i<TOTAL_TRAPS;i++){const t=prog['trap_'+i];if(!t)continue;if(t.p3>0)done++;if(t.p3===3)perfect++;stars+=(t.p3||0);}
+        const last=s.lastSeen&&s.lastSeen.toDate?s.lastSeen.toDate():null;
+        return {...s,done,perfect,stars,last};
+      })
+      .sort((a,b)=>key==='name'?dir*(a.name||'').localeCompare(b.name||''):key==='last'?dir*((b.last||0)-(a.last||0)):dir*((b[key]||0)-(a[key]||0)));
 
-  let done = 0, perfect = 0, stars = 0;
-  for (let i = 0; i < TOTAL_TRAPS; i++) {
-    const t = prog[`trap_${i}`];
-    if (!t) continue;
-    if (t.p3 > 0)   done++;
-    if (t.p3 === 3)  perfect++;
-    stars += (t.p3 || 0);
-  }
+    const tbody=document.getElementById('studentsBody');
+    if(!rows.length){tbody.innerHTML='<tr><td colspan="6" class="loading">Учнів не знайдено</td></tr>';return;}
+    tbody.innerHTML=rows.map(s=>{
+      const pct=Math.round(s.done/TOTAL_TRAPS*100);
+      const col=pct>=80?'perfect':'';
+      const ls=s.last?s.last.toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit',year:'numeric'}):'—';
+      return '<tr onclick="showDetail(''+s.uid+'')" style="cursor:pointer">'+
+        '<td><div class="td-name">'+(s.name||'—')+'</div><div class="td-email">'+(s.email||'')+'</div></td>'+
+        '<td class="td-num">'+s.done+' / '+TOTAL_TRAPS+' <span class="mini-bar"><span class="mini-bar-fill '+col+'" style="width:'+pct+'%"></span></span></td>'+
+        '<td class="td-num">'+s.perfect+'</td>'+
+        '<td class="td-stars">'+'⭐'.repeat(Math.min(s.stars,5))+' <span style="color:var(--muted);font-size:11px">'+s.stars+'</span></td>'+
+        '<td class="td-last">'+ls+'</td>'+
+        '<td><button class="sort-btn" onclick="event.stopPropagation();showDetail(''+s.uid+'')">Деталі</button></td>'+
+        '</tr>';
+    }).join('');
+  };
 
-  const trapCells = Array.from({ length: TOTAL_TRAPS }, (_, i) => {
-    const t   = prog[`trap_${i}`];
-    const cls = !t ? '' : t.p3 === 3 ? 'perfect' : t.p3 > 0 ? 'done' : 'current';
-    const st  = t ? '⭐'.repeat(t.p3||0) : '';
-    const d1  = t?.p1 ? 'done' : '';
-    const d2  = t?.p2 ? 'done' : '';
-    const d3  = t?.p3 === 3 ? 'done' : t?.p3 > 0 ? 'partial' : '';
-    return `<div class="trap-cell ${cls}">
-      <div class="trap-cell-num">#${i+1}</div>
-      <div class="trap-cell-icon">${ICONS[i]||'♟'}</div>
-      <div class="trap-cell-stars">${st||'·'}</div>
-      <div class="trap-cell-phases">
-        <div class="phase-dot ${d1}"></div>
-        <div class="phase-dot ${d2}"></div>
-        <div class="phase-dot ${d3}"></div>
-      </div>
-    </div>`;
-  }).join('');
+  window.showDetail = function(uid) {
+    const s=_state.students.find(x=>x.uid===uid);
+    const prog=_state.progress[uid]||{};
+    if(!s)return;
+    let done=0,perfect=0,stars=0;
+    for(let i=0;i<TOTAL_TRAPS;i++){const t=prog['trap_'+i];if(!t)continue;if(t.p3>0)done++;if(t.p3===3)perfect++;stars+=(t.p3||0);}
+    const cells=Array.from({length:TOTAL_TRAPS},(_,i)=>{
+      const t=prog['trap_'+i];
+      const cls=!t?'':t.p3===3?'perfect':t.p3>0?'done':'current';
+      const st=t?'⭐'.repeat(t.p3||0):'';
+      const d1=t&&t.p1?'done':'',d2=t&&t.p2?'done':'',d3=t&&t.p3===3?'done':t&&t.p3>0?'partial':'';
+      return '<div class="trap-cell '+cls+'"><div class="trap-cell-num">#'+(i+1)+'</div>'+
+        '<div class="trap-cell-icon">'+(ICONS[i]||'♟')+'</div>'+
+        '<div class="trap-cell-stars">'+(st||'·')+'</div>'+
+        '<div class="trap-cell-phases"><div class="phase-dot '+d1+'"></div><div class="phase-dot '+d2+'"></div><div class="phase-dot '+d3+'"></div></div></div>';
+    }).join('');
+    const cr=s.createdAt&&s.createdAt.toDate?s.createdAt.toDate().toLocaleDateString('uk-UA'):'—';
+    document.getElementById('detailBody').innerHTML=
+      '<div class="modal-title">'+(s.name||'Учень')+'</div>'+
+      '<div class="modal-sub">'+s.email+' · Зареєстрований: '+cr+'</div>'+
+      '<div class="student-summary">'+
+        '<div class="sstats-card"><div class="sstats-num">'+done+'</div><div class="sstats-label">Пройдено</div></div>'+
+        '<div class="sstats-card"><div class="sstats-num">'+perfect+'</div><div class="sstats-label">Ідеально</div></div>'+
+        '<div class="sstats-card"><div class="sstats-num">'+stars+'</div><div class="sstats-label">Зірок</div></div>'+
+        '<div class="sstats-card"><div class="sstats-num">'+(TOTAL_TRAPS-done)+'</div><div class="sstats-label">Залишилось</div></div>'+
+      '</div>'+
+      '<div style="font-size:11px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Прогрес — крапки: Пояснення / Вправа / Тест</div>'+
+      '<div class="trap-detail-grid">'+cells+'</div>';
+    document.getElementById('detailModal').classList.add('open');
+  };
 
-  document.getElementById('detailBody').innerHTML = `
-    <div class="modal-title">${s.name || 'Учень'}</div>
-    <div class="modal-sub">${s.email} · Зареєстрований: ${formatDate(s.createdAt?.toDate?.()) || '—'}</div>
-    <div class="student-summary">
-      <div class="sstats-card"><div class="sstats-num">${done}</div><div class="sstats-label">Пройдено</div></div>
-      <div class="sstats-card"><div class="sstats-num">${perfect}</div><div class="sstats-label">Ідеально</div></div>
-      <div class="sstats-card"><div class="sstats-num">${stars}</div><div class="sstats-label">Зірок</div></div>
-      <div class="sstats-card"><div class="sstats-num">${TOTAL_TRAPS - done}</div><div class="sstats-label">Залишилось</div></div>
-    </div>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">
-      Прогрес по пастках — 3 крапки = Пояснення / Вправа / Тест
-    </div>
-    <div class="trap-detail-grid">${trapCells}</div>
-  `;
-  document.getElementById('detailModal').classList.add('open');
-};
-
-window.closeDetail = () => document.getElementById('detailModal').classList.remove('open');
-window.closeModal  = (e) => { if (e.target.id === 'detailModal') closeDetail(); };
-
-// ── УТИЛІТИ ──────────────────────────────────────────────
-function formatDate(d) {
-  if (!d) return '—';
-  const date = d instanceof Date ? d : new Date(d);
-  return date.toLocaleDateString('uk-UA', { day:'2-digit', month:'2-digit', year:'numeric',
-                                            hour:'2-digit', minute:'2-digit' });
-}
+  window.closeDetail = ()=>document.getElementById('detailModal').classList.remove('open');
+  window.closeModal  = (e)=>{if(e.target.id==='detailModal')closeDetail();};
+})();
 </script>
 </body>
 </html>
