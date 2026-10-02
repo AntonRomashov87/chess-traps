@@ -4955,6 +4955,7 @@ function updateCtrlCounter() {
 
 // Цикл швидкостей
 function cycleSpeed() {
+  if (currentPhase !== 1) return;
   const idx    = SPEEDS.indexOf(explainSpeed);
   explainSpeed = SPEEDS[(idx + 1) % SPEEDS.length];
   updateSpeedBtn();
@@ -4962,6 +4963,7 @@ function cycleSpeed() {
 
 // Пауза / Старт
 function explainToggle() {
+  if (currentPhase !== 1) return;
   if (explainPaused) {
     explainPaused = false;
     updatePlayBtn(false);
@@ -4982,6 +4984,7 @@ function updatePlayBtn(isPaused) {
 
 // Перемотка на конкретний хід
 function explainGoTo(step) {
+  if (currentPhase !== 1) return;
   if (explainTimer) clearTimeout(explainTimer);
   explainPaused = true;
   updatePlayBtn(true);
@@ -5019,13 +5022,16 @@ function explainGoTo(step) {
 }
 
 function explainStepBack() {
+  if (currentPhase !== 1) return;
   explainGoTo(Math.max(0, phaseStep - 1));
 }
 function explainStepFwd() {
+  if (currentPhase !== 1) return;
   const trap = ALL_TRAPS[currentTrap];
   explainGoTo(Math.min((trap.allMoves||[]).length, phaseStep + 1));
 }
 function explainGoToEnd() {
+  if (currentPhase !== 1) return;
   const trap = ALL_TRAPS[currentTrap];
   explainGoTo((trap.allMoves||[]).length);
 }
