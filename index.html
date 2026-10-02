@@ -1652,7 +1652,7 @@ header {
 
     <div class="editor-tabs">
       <button class="editor-tab active" id="etab-edit" onclick="switchEditorTab('edit')">✏️ Редагувати</button>
-      <button class="editor-tab" id="etab-add"  onclick="switchEditorTab('add')">➕ Додати PGN</button>
+      <button class="editor-tab" id="etab-add"  onclick="switchEditorTab('add')">➕ Нова пастка</button>
       <button class="editor-tab" id="etab-list" onclick="switchEditorTab('list')">📋 Список</button>
     </div>
 
@@ -1711,29 +1711,99 @@ header {
 
     <!-- ДОДАТИ PGN -->
     <div class="editor-pane" id="epane-add" style="display:none">
-      <div class="editor-section-title">Додати нову пастку через PGN</div>
-      <input class="pgn-field" id="pgnName" placeholder="Назва пастки (укр.)">
-      <textarea class="pgn-textarea" id="pgnInput" rows="5" placeholder="1. e4 e5 2. Nf3 Nc6..."></textarea>
+      <div class="editor-section-title">➕ Нова пастка</div>
+
+      <!-- Підвкладки: SAN / PGN -->
+      <div style="display:flex;gap:0;margin-bottom:12px;border-radius:6px;overflow:hidden;border:1px solid var(--border)">
+        <button id="newTabSan" onclick="setNewTrapTab('san')"
+          style="flex:1;padding:7px;background:var(--gold);border:none;color:var(--ink);font-weight:700;font-size:12px;cursor:pointer">
+          ✍️ Ввести ходи
+        </button>
+        <button id="newTabPgn" onclick="setNewTrapTab('pgn')"
+          style="flex:1;padding:7px;background:transparent;border:none;color:var(--muted);font-weight:700;font-size:12px;cursor:pointer">
+          📋 Вставити PGN
+        </button>
+      </div>
+
+      <!-- Спільні поля -->
       <div class="editor-row">
-        <div class="editor-col">
-          <input class="pgn-field" id="pgnWhite" placeholder="⚪ Ідея білих (через кому)">
+        <div class="editor-col" style="flex:1">
+          <label class="editor-label">Назва пастки</label>
+          <input class="pgn-field" id="pgnName" placeholder="Назва пастки (укр.)">
         </div>
-        <div class="editor-col">
-          <input class="pgn-field" id="pgnBlack" placeholder="⚫ Ідея чорних (через кому)">
+        <div style="flex:0 0 80px">
+          <label class="editor-label">Емодзі</label>
+          <input class="pgn-field" id="pgnIcon" placeholder="🎯"
+            style="font-size:22px;text-align:center"
+            oninput="el('pgnIconPreview').textContent=this.value||'🎯'">
+        </div>
+        <div style="flex:0 0 50px;text-align:center;padding-top:18px">
+          <span id="pgnIconPreview" style="font-size:32px">🎯</span>
         </div>
       </div>
+
+      <!-- Поле SAN ходів -->
+      <div id="newSanBlock">
+        <label class="editor-label">Ходи (SAN через пробіл)</label>
+        <textarea class="pgn-textarea" id="pgnSan" rows="3"
+          placeholder="e4 e5 Nf3 Nc6 Bc4 Nd4 Nxe5 Qg5 Nxf7 Qxg2 Rf1 Qxe4+ Be2 Nf3#"></textarea>
+        <div class="pgn-status" id="pgnSanStatus"></div>
+      </div>
+
+      <!-- Поле PGN -->
+      <div id="newPgnBlock" style="display:none">
+        <label class="editor-label">PGN текст</label>
+        <textarea class="pgn-textarea" id="pgnInput" rows="5"
+          placeholder="1. e4 e5 2. Nf3 Nc6 3. Bc4 Nd4...&#10;або з тегами [Event &quot;...&quot;]"></textarea>
+      </div>
+
+      <!-- Спільні поля продовження -->
+      <label class="editor-label">Відкриття (дебют)</label>
+      <input class="pgn-field" id="pgnOpening" placeholder="Наприклад: Італійська партія">
+
+      <label class="editor-label">Опис</label>
+      <textarea class="pgn-textarea" id="pgnDesc" rows="2" placeholder="Коротко про пастку..."></textarea>
+
       <div class="editor-row">
         <div class="editor-col">
+          <label class="editor-label">⚪ Ідея білих (кожен рядок)</label>
+          <textarea class="pgn-textarea" id="pgnWhite" rows="2"
+            placeholder="Перший пункт&#10;Другий пункт"></textarea>
+        </div>
+        <div class="editor-col">
+          <label class="editor-label">⚫ Ідея чорних</label>
+          <textarea class="pgn-textarea" id="pgnBlack" rows="2"
+            placeholder="Перший пункт&#10;Другий пункт"></textarea>
+        </div>
+      </div>
+
+      <div class="editor-row" style="margin-top:8px">
+        <div class="editor-col">
+          <label class="editor-label">Грає за</label>
           <select class="pgn-field" id="pgnPlayAs">
-            <option value="white">⚪ Грає за білих</option>
-            <option value="black">⚫ Грає за чорних</option>
+            <option value="white">⚪ Білі</option>
+            <option value="black">⚫ Чорні</option>
           </select>
         </div>
-        <div class="editor-col" style="flex:0 0 90px">
-          <input class="pgn-field" id="pgnIcon" placeholder="🎯" style="font-size:22px;text-align:center">
+        <div class="editor-col">
+          <label class="editor-label">Результат</label>
+          <select class="pgn-field" id="pgnResult">
+            <option value="1-0">1-0 (білі)</option>
+            <option value="0-1">0-1 (чорні)</option>
+          </select>
         </div>
       </div>
-      <button class="pgn-add-btn" onclick="addTrapFromPGN()">➕ Додати пастку</button>
+
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button class="pgn-add-btn" onclick="validateNewTrap()" style="background:#1e5c35;flex:0 0 auto">
+          ✓ Перевірити ходи
+        </button>
+        <button class="pgn-add-btn" onclick="addNewTrap()" style="flex:1">
+          ➕ Створити пастку
+        </button>
+      </div>
+      <div class="pgn-status" id="pgnStatus"></div>
+      <div id="teacherList" style="margin-top:10px"></div>
       <div class="pgn-status" id="pgnStatus"></div>
       <div id="teacherList" style="margin-top:10px"></div>
     </div>
@@ -5896,11 +5966,16 @@ function renderEditorList() {
     if (q && !name.toLowerCase().includes(q) && !(i+1).toString().includes(q)) return '';
     const icon     = getTrapIconEx(trap, i);
     const isCustom = trap.custom ? '<span class="editor-trap-custom">★ PGN</span>' : '';
+    const delBtn = trap.custom
+      ? `<button class="editor-trap-edit" style="background:#8b2121;border-color:#8b2121;color:#fff"
+           onclick="event.stopPropagation();deleteCustomTrap(${i})">🗑</button>`
+      : '';
     return `<div class="editor-trap-item" onclick="editTrap(${i})">
       <span class="editor-trap-num">#${i+1}</span>
       <span class="editor-trap-icon">${icon}</span>
       <span class="editor-trap-name">${name}${isCustom}</span>
-      <button class="editor-trap-edit" onclick="event.stopPropagation();editTrap(${i})">Редагувати</button>
+      <button class="editor-trap-edit" onclick="event.stopPropagation();editTrap(${i})">✏️</button>
+      ${delBtn}
     </div>`;
   }).join('');
 }
@@ -6151,6 +6226,156 @@ function resetBoardOrientation() {
     btn.style.borderColor = 'var(--muted)';
     btn.style.color       = 'var(--parchment)';
   }
+}
+
+
+/* ── НОВА ПАСТКА — JS ─────────────────────────── */
+let _newTrapTab = 'san';
+
+function setNewTrapTab(tab) {
+  _newTrapTab = tab;
+  const isSan = tab === 'san';
+  const sanBtn = el('newTabSan');
+  const pgnBtn = el('newTabPgn');
+  if (sanBtn) { sanBtn.style.background = isSan ? 'var(--gold)' : 'transparent';
+                sanBtn.style.color      = isSan ? 'var(--ink)'  : 'var(--muted)'; }
+  if (pgnBtn) { pgnBtn.style.background = !isSan ? 'var(--gold)' : 'transparent';
+                pgnBtn.style.color      = !isSan ? 'var(--ink)'  : 'var(--muted)'; }
+  if (el('newSanBlock')) el('newSanBlock').style.display = isSan  ? 'block' : 'none';
+  if (el('newPgnBlock')) el('newPgnBlock').style.display = !isSan ? 'block' : 'none';
+}
+
+function validateNewTrap() {
+  const movesStr = _newTrapTab === 'pgn'
+    ? (el('pgnInput')?.value || '')
+    : (el('pgnSan')?.value   || '');
+
+  if (!movesStr.trim()) {
+    showPgnStatus('⚠ Введіть ходи', 'warn'); return false;
+  }
+
+  const chess  = new Chess();
+  const tokens = movesStr
+    .replace(/\[[\s\S]*?\]/g, '')    // прибираємо PGN теги
+    .replace(/\d+\./g, '')           // прибираємо нумерацію
+    .replace(/[!?+#]/g, '')          // прибираємо анотації
+    .replace(/\$\d+/g, '')           // прибираємо NAG
+    .split(/\s+/).filter(t => t && !/^\d+$/.test(t) && t !== '*');
+
+  const uci = [], san = [];
+  for (const token of tokens) {
+    const mv = chess.move(token, { sloppy: true });
+    if (!mv) { showPgnStatus(`❌ Невалідний хід: "${token}"`, 'error'); return false; }
+    uci.push(mv.from + mv.to + (mv.promotion || ''));
+    san.push(mv.san);
+  }
+
+  if (uci.length < 4) { showPgnStatus('⚠ Мінімум 4 ходи', 'warn'); return false; }
+
+  // Зберігаємо в dataset
+  const field = el('pgnSan') || el('pgnInput');
+  if (field) { field.dataset.uci = JSON.stringify(uci); field.dataset.san = JSON.stringify(san); }
+
+  showPgnStatus(`✅ ${uci.length} ходів: ${san.slice(0,5).join(' ')}${san.length>5?'...':''}`, 'ok');
+  return true;
+}
+
+function showPgnStatus(msg, type) {
+  const e = el('pgnStatus');
+  if (!e) return;
+  e.textContent = msg;
+  e.style.color = type === 'error' ? '#c0392b' : type === 'ok' ? '#1e8c4a' : '#c9922a';
+}
+
+function addNewTrap() {
+  // Валідуємо ходи
+  if (!validateNewTrap()) return;
+
+  const field  = el(_newTrapTab === 'san' ? 'pgnSan' : 'pgnInput');
+  const allMoves = JSON.parse(field?.dataset.uci || '[]');
+  const allSan   = JSON.parse(field?.dataset.san || '[]');
+
+  if (!allMoves.length) { showPgnStatus('⚠ Спочатку перевірте ходи', 'warn'); return; }
+
+  const name    = (el('pgnName')?.value    || '').trim() || 'Нова пастка';
+  const opening = (el('pgnOpening')?.value || '').trim();
+  const desc    = (el('pgnDesc')?.value    || '').trim();
+  const icon    = (el('pgnIcon')?.value    || '').trim() || '♟';
+  const playAs  = el('pgnPlayAs')?.value   || 'white';
+  const result  = el('pgnResult')?.value   || (playAs === 'white' ? '1-0' : '0-1');
+  const white   = (el('pgnWhite')?.value   || '').split('\n').map(s=>s.trim()).filter(Boolean);
+  const black   = (el('pgnBlack')?.value   || '').split('\n').map(s=>s.trim()).filter(Boolean);
+
+  // Будуємо steps
+  const steps = buildStepsFromAll(allMoves, allSan, name, playAs);
+
+  const newTrap = {
+    id:          ALL_TRAPS.length + 1,
+    name:        { uk: name,    en: name },
+    opening:     { uk: opening, en: opening },
+    desc:        { uk: desc,    en: desc },
+    white:       { uk: white,   en: white },
+    black:       { uk: black,   en: black },
+    startFen:    'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+    allMoves, allSan, steps,
+    orientation: playAs,
+    playAs,
+    result,
+    custom:      true,
+    _icon:       icon,
+  };
+
+  // Додаємо в масив
+  ALL_TRAPS.push(newTrap);
+  trapProgress.push({ p1: false, p2: false, p3: 0 });
+
+  // Зберігаємо іконку
+  customIcons[`trap_${ALL_TRAPS.length - 1}`] = icon;
+  saveCustomIcons();
+
+  // Зберігаємо в localStorage
+  saveCustomTrapsToStorage();
+
+  // Оновлюємо UI
+  renderTrapGrid();
+  renderMenu();
+  renderEditorList();
+
+  showPgnStatus(`✅ Пастку "${name}" створено! (#${ALL_TRAPS.length})`, 'ok');
+
+  // Очищаємо форму
+  ['pgnName','pgnSan','pgnInput','pgnOpening','pgnDesc','pgnWhite','pgnBlack'].forEach(id => {
+    const e = el(id); if (e) e.value = '';
+  });
+  if (el('pgnIcon')) el('pgnIcon').value = '';
+  if (el('pgnIconPreview')) el('pgnIconPreview').textContent = '🎯';
+}
+
+/* ── ВИДАЛЕННЯ КАСТОМНОЇ ПАСТКИ ────────────────── */
+function deleteCustomTrap(idx) {
+  const trap = ALL_TRAPS[idx];
+  if (!trap?.custom) return;
+  if (!confirm(`Видалити пастку "${trap.name?.uk}"?`)) return;
+
+  ALL_TRAPS.splice(idx, 1);
+  trapProgress.splice(idx, 1);
+
+  // Переіндексовуємо іконки
+  const newIcons = {};
+  Object.entries(customIcons).forEach(([k, v]) => {
+    const i = parseInt(k.replace('trap_',''));
+    if (i < idx)       newIcons[k] = v;
+    else if (i > idx)  newIcons[`trap_${i-1}`] = v;
+  });
+  customIcons = newIcons;
+  saveCustomIcons();
+  saveCustomTrapsToStorage();
+
+  if (currentTrap >= ALL_TRAPS.length) currentTrap = ALL_TRAPS.length - 1;
+
+  renderTrapGrid();
+  renderMenu();
+  renderEditorList();
 }
 
 </script>
