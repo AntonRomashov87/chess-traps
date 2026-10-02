@@ -14,7 +14,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Inter:wght@300;400;500;600&family=Fira+Mono:wght@400;500&display=swap" rel="stylesheet">
 
   <!-- Chessboard.js -->
-  <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
 
   <!-- Стилі додатку -->
   <style>
@@ -1377,9 +1377,9 @@ header {
 
 </style>
   <!-- Firebase SDK (UMD — надійніше ніж ESM modules) -->
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/firebase@10.7.1/firebase-app-compat.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/firebase@10.7.1/firebase-auth-compat.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/firebase@10.7.1/firebase-firestore-compat.min.js"></script>
   <script>
   (function() {
     const FIREBASE_CONFIG = {
@@ -1864,7 +1864,7 @@ header {
      СКРИПТИ
 ════════════════════════════════════════════ -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-<script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
 <script>
 /* ═══════════════════════════════════════════════════════
@@ -4314,14 +4314,19 @@ function doRegister() {
 }
 
 function doLogout() {
+  // Firebase logout
+  if (window._fb) window._fb.logout().catch(e => {});
   currentUser = null;
   try { localStorage.removeItem(KEY_USER); } catch (e) {}
+  // Показуємо екран входу
   el('loginScreen').style.display = 'flex';
   el('appScreen').style.display   = 'none';
-  el('teacherPass').value  = '';
-  el('studentName').value  = '';
-  el('loginErr').textContent = '';
+  // Очищаємо поля (перевіряємо що елемент існує)
+  const fields = ['teacherEmail','teacherPass','studentEmail','studentPass',
+                  'regName','regEmail','regPass','regPass2','loginErr'];
+  fields.forEach(id => { const e = el(id); if (e) e.value ? e.value = '' : e.textContent = ''; });
   setLoginRole('student');
+  setAuthTab('login');
 }
 
 function tryRestoreSession() {
