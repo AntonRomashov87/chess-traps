@@ -1801,7 +1801,15 @@ header {
         </div>
       </div>
       <div id="teacherPanelBtn" style="display:none">
-        <button class="teacher-open-btn" onclick="openTeacherPanel()">📥 Додати пастку (PGN)</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="teacher-open-btn" onclick="openTeacherPanel()" style="flex:1">
+            ✏️ Редактор пасток
+          </button>
+          <button class="teacher-open-btn" onclick="openDashboard()"
+            style="flex:1;background:#1e5c35;border-color:#2e7d32">
+            📊 Статистика
+          </button>
+        </div>
       </div>
       <div class="question-card" id="qCardDesktop">
         <div class="phase-tabs" id="phaseTabsDesktop"></div>
@@ -6015,6 +6023,11 @@ function editCurrentTrap() {
 
 /* ── ПЕРЕВЕРТАННЯ ДОШКИ (тільки для тренера) ── */
 let boardFlipped = false;
+
+function openDashboard() {
+  // Відкриваємо stats-dashboard.html в новій вкладці
+  window.open('stats-dashboard.html', '_blank');
+}
 
 function flipBoard() {
   boardFlipped = !boardFlipped;
