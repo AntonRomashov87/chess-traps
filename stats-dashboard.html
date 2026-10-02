@@ -385,30 +385,51 @@
     const p   = _state.progress;
     const key = _state.sortKey;
     const dir = _state.sortDir;
+
     let rows = _state.students
       .filter(s => !q || (s.name||'').toLowerCase().includes(q) || (s.email||'').toLowerCase().includes(q))
       .map(s => {
-        const prog=p[s.uid]||{}; let done=0,perfect=0,stars=0;
-        for(let i=0;i<TOTAL_TRAPS;i++){const t=prog['trap_'+i];if(!t)continue;if(t.p3>0)done++;if(t.p3===3)perfect++;stars+=(t.p3||0);}
-        const last=s.lastSeen&&s.lastSeen.toDate?s.lastSeen.toDate():null;
-        return {...s,done,perfect,stars,last};
+        const prog = p[s.uid] || {};
+        let done=0, perfect=0, stars=0;
+        for (let i=0; i<TOTAL_TRAPS; i++) {
+          const t = prog['trap_'+i];
+          if (!t) continue;
+          if (t.p3>0)   done++;
+          if (t.p3===3)  perfect++;
+          stars += (t.p3||0);
+        }
+        const last = s.lastSeen && s.lastSeen.toDate ? s.lastSeen.toDate() : null;
+        return {...s, done, perfect, stars, last};
       })
-      .sort((a,b)=>key==='name'?dir*(a.name||'').localeCompare(b.name||''):key==='last'?dir*((b.last||0)-(a.last||0)):dir*((b[key]||0)-(a[key]||0)));
+      .sort((a,b) => {
+        if (key==='name') return dir*(a.name||'').localeCompare(b.name||'');
+        if (key==='last') return dir*((b.last||0)-(a.last||0));
+        return dir*((b[key]||0)-(a[key]||0));
+      });
 
-    const tbody=document.getElementById('studentsBody');
-    if(!rows.length){tbody.innerHTML='<tr><td colspan="6" class="loading">Учнів не знайдено</td></tr>';return;}
-    tbody.innerHTML=rows.map(s=>{
-      const pct=Math.round(s.done/TOTAL_TRAPS*100);
-      const col=pct>=80?'perfect':'';
-      const ls=s.last?s.last.toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit',year:'numeric'}):'—';
-      return '<tr onclick="showDetail(''+s.uid+'')" style="cursor:pointer">'+
-        '<td><div class="td-name">'+(s.name||'—')+'</div><div class="td-email">'+(s.email||'')+'</div></td>'+
-        '<td class="td-num">'+s.done+' / '+TOTAL_TRAPS+' <span class="mini-bar"><span class="mini-bar-fill '+col+'" style="width:'+pct+'%"></span></span></td>'+
-        '<td class="td-num">'+s.perfect+'</td>'+
-        '<td class="td-stars">'+'⭐'.repeat(Math.min(s.stars,5))+' <span style="color:var(--muted);font-size:11px">'+s.stars+'</span></td>'+
-        '<td class="td-last">'+ls+'</td>'+
-        '<td><button class="sort-btn" onclick="event.stopPropagation();showDetail(''+s.uid+'')">Деталі</button></td>'+
-        '</tr>';
+    const tbody = document.getElementById('studentsBody');
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="loading">Учнів не знайдено</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = rows.map(function(s) {
+      const pct = Math.round(s.done / TOTAL_TRAPS * 100);
+      const col = pct >= 80 ? 'perfect' : '';
+      const ls  = s.last ? s.last.toLocaleDateString('uk-UA') : '—';
+      const bar = '<span class="mini-bar"><span class="mini-bar-fill ' + col + '" style="width:' + pct + '%"></span></span>';
+      const sts = '⭐'.repeat(Math.min(s.stars, 5)) + ' <span style="color:var(--muted);font-size:11px">' + s.stars + '</span>';
+      return [
+        '<tr onclick="showDetail(\'' + s.uid + '\')" style="cursor:pointer">',
+          '<td><div class="td-name">' + (s.name||'—') + '</div>',
+              '<div class="td-email">' + (s.email||'') + '</div></td>',
+          '<td class="td-num">' + s.done + ' / ' + TOTAL_TRAPS + ' ' + bar + '</td>',
+          '<td class="td-num">' + s.perfect + '</td>',
+          '<td class="td-stars">' + sts + '</td>',
+          '<td class="td-last">' + ls + '</td>',
+          '<td><button class="sort-btn" onclick="event.stopPropagation();showDetail(\'' + s.uid + '\')" >Деталі</button></td>',
+        '</tr>'
+      ].join('');
     }).join('');
   };
 
