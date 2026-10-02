@@ -1397,6 +1397,57 @@ header {
 }
 
 
+
+/* ── ПУЛЬСАЦІЯ кнопки Далі ── */
+@keyframes pulse-btn {
+  0%   { box-shadow: 0 0 0 0 rgba(201,146,42,.7); transform: scale(1); }
+  50%  { box-shadow: 0 0 0 8px rgba(201,146,42,0); transform: scale(1.03); }
+  100% { box-shadow: 0 0 0 0 rgba(201,146,42,0); transform: scale(1); }
+}
+.btn-secondary.pulse {
+  animation: pulse-btn 1.4s ease-in-out infinite;
+  background: var(--gold) !important;
+  color: var(--ink) !important;
+  border-color: var(--gold-lt) !important;
+  font-weight: 800;
+}
+
+/* ── ЦЕНТРУВАННЯ ДОШКИ ── */
+.board-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.board-panel > * {
+  width: 100%;
+  max-width: 520px;
+}
+#board {
+  width: 100% !important;
+  max-width: 520px !important;
+  margin: 0 auto;
+}
+.move-history,
+.explain-controls,
+.q-mobile-wrap {
+  max-width: 520px;
+  width: 100%;
+}
+.trap-badge, .trap-name, .trap-opening {
+  max-width: 520px;
+  width: 100%;
+}
+
+/* ── КНОПКА ДАЛІ ВНИЗУ НА МОБІЛЬНОМУ ── */
+@media (max-width: 760px) {
+  .q-mobile-wrap .btn-next-fixed {
+    position: sticky;
+    bottom: 72px;
+    z-index: 50;
+    width: 100%;
+    margin-top: 10px;
+  }
+}
 </style>
   <!-- Firebase SDK (UMD — надійніше ніж ESM modules) -->
   <script src="https://cdn.jsdelivr.net/npm/firebase@10.7.1/firebase-app-compat.min.js"></script>
@@ -1791,9 +1842,10 @@ header {
           <div class="step-dots" id="stepDotsM"></div>
           <div class="feedback" id="feedbackM"></div>
           <div class="btn-row">
-            <button class="btn btn-primary"   id="hintBtnM" onclick="showHint()">💡 Підказка</button>
-            <button class="btn btn-secondary" id="nextBtnM" onclick="nextStep()" disabled>Далі →</button>
+            <button class="btn btn-primary" id="hintBtnM" onclick="showHint()">💡 Підказка</button>
           </div>
+          <button class="btn btn-secondary btn-next-fixed" id="nextBtnM"
+            onclick="nextStep()" disabled style="margin-top:10px">Далі →</button>
           <button class="btn-skip-p1" id="skipP1BtnM" onclick="skipToPhase2()" style="display:none">
             Вже знаю → Вправа
           </button>
@@ -5700,7 +5752,17 @@ function setText2(baseId, txt) {
 // Вмикаємо/вимикаємо кнопку (desktop + mobile)
 function disableBtn(baseId, disabled) {
   [baseId, baseId + 'M'].forEach(id => {
-    const e = el(id); if (e) e.disabled = disabled;
+    const e = el(id);
+    if (!e) return;
+    e.disabled = disabled;
+    // Пульсація для кнопки Далі
+    if (id === 'nextBtn' || id === 'nextBtnM') {
+      if (!disabled) {
+        e.classList.add('pulse');
+      } else {
+        e.classList.remove('pulse');
+      }
+    }
   });
 }
 // Встановлюємо текст кнопки
