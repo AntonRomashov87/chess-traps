@@ -1543,7 +1543,7 @@ header {
         placeholder="Повторіть пароль" style="margin-top:8px">
     </div>
 
-    <button class="login-btn" id="loginBtn" onclick="doLogin()">Увійти →</button>
+    <button class="login-btn" id="loginBtn" onclick="handleLoginBtn()">Увійти →</button>
     <div class="login-err" id="loginErr"></div>
 
     <div class="login-hint" id="loginHint">
@@ -4181,24 +4181,26 @@ function setLoginRole(role) {
   if (el('loginErr')) el('loginErr').textContent = '';
 }
 
+let _authTab = 'login';
+
+function handleLoginBtn() {
+  if (_authTab === 'register') doRegister();
+  else doLogin();
+}
+
 function setAuthTab(tab) {
+  _authTab = tab;
   const isLogin = tab === 'login';
-  // Кнопки вкладок
   const tabL = el('tabLogin');
   const tabR = el('tabRegister');
   if (tabL) { tabL.style.background = isLogin ? 'var(--gold)' : 'transparent';
                tabL.style.color     = isLogin ? 'var(--ink)'  : 'var(--muted)'; }
   if (tabR) { tabR.style.background = !isLogin ? 'var(--gold)' : 'transparent';
                tabR.style.color     = !isLogin ? 'var(--ink)'  : 'var(--muted)'; }
-  // Поля
   if (el('studentLoginFields')) el('studentLoginFields').style.display = isLogin  ? 'block' : 'none';
   if (el('studentRegFields'))   el('studentRegFields').style.display   = !isLogin ? 'block' : 'none';
-  // Кнопка
   const btn = el('loginBtn');
-  if (btn) {
-    btn.textContent = isLogin ? 'Увійти →' : 'Зареєструватись →';
-    btn.onclick     = isLogin ? doLogin : doRegister;
-  }
+  if (btn) btn.textContent = isLogin ? 'Увійти →' : 'Зареєструватись →';
   if (el('loginErr')) el('loginErr').textContent = '';
 }
 
