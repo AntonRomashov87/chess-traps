@@ -170,6 +170,7 @@
   .login-err { color: var(--red); font-size: 12px; margin-top: 8px; text-align: center; }
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@900&family=Inter:wght@400;600;700&family=Fira+Mono&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -216,6 +217,10 @@
       <button class="sort-btn" id="sort-stars" onclick="setSort('stars')">↕ Зірки</button>
       <button class="sort-btn" id="sort-last" onclick="setSort('last')">↕ Активність</button>
       <button class="btn-logout" onclick="loadData()">🔄 Оновити</button>
+      <button class="btn-logout" onclick="exportExcel()"
+        style="background:var(--green);color:#fff;border-color:var(--green)">
+        📥 Excel
+      </button>
     </div>
 
     <!-- Таблиця -->
@@ -466,6 +471,101 @@
 
   window.closeDetail = ()=>document.getElementById('detailModal').classList.remove('open');
   window.closeModal  = (e)=>{if(e.target.id==='detailModal')closeDetail();};
+
+  window.exportExcel = function() {
+    const p = _state.progress;
+    const TOTAL = TOTAL_TRAPS;
+
+    // ── Аркуш 1: Загальна таблиця ──────────────────────────
+    const summaryData = [
+      ['Учень', 'Email', 'Пройдено пасток', 'Ідеально (⭐⭐⭐)', 'Зірок всього',
+       '% виконання', 'Остання активність', 'Дата реєстрації']
+    ];
+
+    _state.students.forEach(s => {
+      const prog = p[s.uid] || {};
+      let done=0, perfect=0, stars=0;
+      for (let i=0; i<TOTAL; i++) {
+        const t = prog['trap_'+i];
+        if (!t) continue;
+        if (t.p3>0)   done++;
+        if (t.p3===3)  perfect++;
+        stars += (t.p3||0);
+      }
+      const pct  = Math.round(done/TOTAL*100) + '%';
+      const last = s.lastSeen && s.lastSeen.toDate
+        ? s.lastSeen.toDate().toLocaleDateString('uk-UA') : '—';
+      const reg  = s.createdAt && s.createdAt.toDate
+        ? s.createdAt.toDate().toLocaleDateString('uk-UA') : '—';
+      summaryData.push([s.name||'', s.email||'', done, perfect, stars, pct, last, reg]);
+    });
+
+    // ── Аркуш 2: Детальний прогрес по пастках ──────────────
+    const header = ['Учень', 'Email'];
+    for (let i=0; i<TOTAL; i++) header.push('#'+(i+1));
+    const detailData = [header];
+
+    _state.students.forEach(s => {
+      const prog = p[s.uid] || {};
+      const row  = [s.name||'', s.email||''];
+      for (let i=0; i<TOTAL; i++) {
+        const t = prog['trap_'+i];
+        if (!t)             row.push('');
+        else if (t.p3===3)  row.push('⭐⭐⭐');
+        else if (t.p3===2)  row.push('⭐⭐');
+        else if (t.p3===1)  row.push('⭐');
+        else if (t.p2)      row.push('Фаза 2');
+        else if (t.p1)      row.push('Фаза 1');
+        else                row.push('');
+      }
+      detailData.push(row);
+    });
+
+    // ── Аркуш 3: Статистика по пастках ─────────────────────
+    const trapHeader = ['#', 'Назва пастки', 'Пройшли (хоч раз)', 'Ідеально', '% ідеально'];
+    const trapData   = [trapHeader];
+    const TRAP_NAMES = [
+      'Блекберна-Шилінга','Легаля','Мортімера','Ноєвого ковчега','Тарраша',
+      'Дрезденська','Маршалла','Копіювання','Мат на проході','Карлса',
+      'Магнуса Сміта','Сибірська','Ласкера','Слона','Рубінштейна',
+      'Галозара','Кінінгера','Корчного','Англунда','Каталимова'
+    ];
+
+    for (let i=0; i<TOTAL; i++) {
+      let done=0, perfect=0;
+      _state.students.forEach(s => {
+        const t = (_state.progress[s.uid]||{})['trap_'+i];
+        if (t && t.p3>0)  done++;
+        if (t && t.p3===3) perfect++;
+      });
+      const name = TRAP_NAMES[i] || ('Пастка #'+(i+1));
+      const pct  = _state.students.length
+        ? Math.round(perfect/_state.students.length*100)+'%' : '0%';
+      trapData.push([i+1, name, done, perfect, pct]);
+    }
+
+    // ── Збираємо Excel файл ─────────────────────────────────
+    const wb = XLSX.utils.book_new();
+
+    const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
+    ws1['!cols'] = [
+      {wch:20},{wch:28},{wch:16},{wch:16},{wch:12},{wch:12},{wch:18},{wch:18}
+    ];
+    XLSX.utils.book_append_sheet(wb, ws1, 'Загальна статистика');
+
+    const ws2 = XLSX.utils.aoa_to_sheet(detailData);
+    ws2['!cols'] = [{wch:20},{wch:28},...Array(TOTAL).fill({wch:8})];
+    XLSX.utils.book_append_sheet(wb, ws2, 'Прогрес по пастках');
+
+    const ws3 = XLSX.utils.aoa_to_sheet(trapData);
+    ws3['!cols'] = [{wch:4},{wch:24},{wch:16},{wch:12},{wch:12}];
+    XLSX.utils.book_append_sheet(wb, ws3, 'Статистика пасток');
+
+    // ── Скачуємо ────────────────────────────────────────────
+    const date = new Date().toLocaleDateString('uk-UA').replace(/\./g,'-');
+    XLSX.writeFile(wb, 'Шахові-пастки-статистика-' + date + '.xlsx');
+  };
+
 })();
 </script>
 </body>
